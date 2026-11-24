@@ -69,7 +69,7 @@ flowchart LR
 - Local project registry with stable IDs, canonical directory paths, duplicate protection, and rename/list/remove operations.
 - Validated, allowlisted scanner profiles stored in SQLite.
 - `crc` command-line application for project management, scanner configuration, scans, AI reviews, history, and report export.
-- `crc-desktop` local desktop workspace for projects, scanner/provider profiles, background scans, findings, AI review, history, and report export.
+- `crc-desktop` local desktop workspace for projects, scanner/provider profiles, background scans, finding triage, AI review, history, and report export.
 - OpenAI-compatible provider profiles and AI finding reviews through `crc provider` and `crc review` commands.
 - Automated Python unit tests and GitHub Actions workflow.
 
