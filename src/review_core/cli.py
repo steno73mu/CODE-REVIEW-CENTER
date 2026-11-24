@@ -46,7 +46,7 @@ def _parser() -> argparse.ArgumentParser:
     add_scanner = scanner_sub.add_parser("add")
     add_scanner.add_argument("--id", required=True)
     add_scanner.add_argument("--name", required=True)
-    add_scanner.add_argument("--parser", choices=sorted(_PARSERS), required=True)
+    add_scanner.add_argument("--parser", choices=("semgrep", "gitleaks", "sarif"), required=True)
     add_scanner.add_argument("--command-json", required=True)
     add_scanner.add_argument("--exit-codes", default="0")
     add_scanner.add_argument("--timeout", type=float, default=300.0)
