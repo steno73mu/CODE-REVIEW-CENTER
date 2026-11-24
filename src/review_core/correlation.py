@@ -69,7 +69,7 @@ def correlate_findings(
 
         for group, evidence in zip(groups, evidence_groups):
             anchor = group[0]
-            if anchor.tool.casefold() == candidate.tool.casefold():
+            if any(item.tool.casefold() == candidate.tool.casefold() for item in group):
                 continue
             if anchor.path is None or anchor.start_line is None:
                 continue
