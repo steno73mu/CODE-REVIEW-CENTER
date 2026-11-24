@@ -65,7 +65,7 @@ class CommandLineTests(unittest.TestCase):
             "--url", "https://api.example.com/v1", "--model", "review-model",
         ])
         self.assertEqual(code, 0, output)
-        self.assertNotIn("api_key", output.lower())
+        self.assertNotIn("test-secret-key", output)
         code, output = self.invoke([
             "review", "--session", "missing-session", "--provider", "remote",
         ])
