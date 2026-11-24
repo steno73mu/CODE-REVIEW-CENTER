@@ -124,7 +124,7 @@ class ScanStore:
                     (session_id, created_at, overall_status, batch.duration_seconds, int(batch.cancelled)),
                 )
                 for order, item in enumerate(batch.jobs):
-                    process = item.scan_result.process_result if item.scan_result else None
+                    process = item.scan_result.process_result if item.scan_result else item.process_result
                     connection.execute(
                         """
                         INSERT INTO scan_jobs
