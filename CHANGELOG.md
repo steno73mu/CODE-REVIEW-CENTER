@@ -13,7 +13,7 @@ All notable changes to CODE-REVIEW-CENTER are documented here.
 - SQLite project, scanner-profile, scan-history, correlation-evidence, and AI-review persistence.
 - Local project registry and validated scanner/provider configuration.
 - `crc` CLI for projects, scanner profiles, scans, providers, AI reviews, and history.
-- `crc-desktop` Tkinter workspace for local project management, scanner profiles, background scans, findings, history, and AI review.
+- `crc-desktop` Tkinter workspace for local project management, scanner profiles, background scans, findings, history, and AI review; packaged as a GUI script on Windows to avoid an extra console window.
 - JSON, SARIF 2.1.0, and Markdown report export, including correlation evidence and saved AI reviews.
 - Offline environment doctor and built-in Semgrep and redacted Gitleaks scanner presets.
 - GitHub Actions builds wheel and source distributions, installs both artifacts, and checks CLI/desktop entry points plus unit tests across Linux and Windows on Python 3.11-3.13.
