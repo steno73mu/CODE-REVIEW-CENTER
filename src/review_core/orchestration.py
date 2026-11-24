@@ -10,6 +10,7 @@ import time
 from .deduplication import deduplicate_findings
 from .engine import EngineCancelledError, EngineExecutionError, EngineTimeoutError
 from .finding import Finding
+from .correlation import CorrelatedFinding, correlate_findings
 from .scanning import ScanResult, run_scanner
 
 
@@ -48,6 +49,7 @@ class ScanBatchResult:
     findings: tuple[Finding, ...]
     duration_seconds: float
     cancelled: bool
+    correlations: tuple[CorrelatedFinding, ...]
 
 
 def _execute_job(job: ScanJob, cancel_event: threading.Event) -> ScanJobResult:
@@ -144,9 +146,11 @@ def run_scan_batch(
         if item.scan_result is not None
         for finding in item.scan_result.findings
     )
+    unique_findings = tuple(deduplicate_findings(all_findings))
     return ScanBatchResult(
         jobs=ordered_results,
-        findings=tuple(deduplicate_findings(all_findings)),
+        findings=unique_findings,
         duration_seconds=max(0.0, time.perf_counter() - started_at),
         cancelled=cancellation.is_set(),
+        correlations=correlate_findings(unique_findings),
     )
