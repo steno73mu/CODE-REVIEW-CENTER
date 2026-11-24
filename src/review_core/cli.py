@@ -8,19 +8,10 @@ from pathlib import Path
 import sys
 import uuid
 
-from .adapters import parse_gitleaks, parse_semgrep
-from .sarif import parse_sarif
 from .configuration import ScannerConfigStore, ScannerProfile
-from .orchestration import ScanJob, run_scan_batch
+from .application import scan_project
 from .projects import ProjectRegistry
 from .storage import ScanStore
-
-
-_PARSERS = {
-    "semgrep": parse_semgrep,
-    "gitleaks": parse_gitleaks,
-    "sarif": parse_sarif,
-}
 
 
 def data_directory() -> Path:
@@ -131,23 +122,7 @@ def main(argv: list[str] | None = None) -> int:
             profiles = scanners.list_profiles(enabled_only=True)
             if not profiles:
                 raise ValueError("no enabled scanner profiles are configured")
-            jobs = []
-            for profile in profiles:
-                command = tuple(
-                    part.replace("{project_path}", project.path)
-                    for part in profile.command
-                )
-                jobs.append(
-                    ScanJob(
-                        job_id=profile.scanner_id,
-                        command=command,
-                        parser=_PARSERS[profile.parser],
-                        accepted_exit_codes=profile.accepted_exit_codes,
-                        timeout_seconds=profile.timeout_seconds,
-                        cwd=project.path,
-                    )
-                )
-            batch = run_scan_batch(jobs, max_workers=args.max_workers)
+            batch = scan_project(project, profiles, max_workers=args.max_workers)
             session_id = str(uuid.uuid4())
             history.save_batch(session_id, batch)
             _json({
