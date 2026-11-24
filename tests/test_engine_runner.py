@@ -2,6 +2,7 @@ import os
 import shutil
 import sys
 import tempfile
+from pathlib import Path
 import threading
 import time
 import unittest
@@ -37,6 +38,17 @@ class EngineRunnerTests(unittest.TestCase):
         self.assertEqual(result.stdout.strip(), "trusted executable")
         which.assert_called_once()
         self.assertEqual(which.call_args.args[0], "python")
+
+    def test_refuses_scanner_executable_resolved_inside_project_directory(self):
+        with tempfile.TemporaryDirectory() as project_directory:
+            fake_executable = Path(project_directory) / "scanner"
+            with patch("shutil.which", return_value=str(fake_executable)), patch(
+                "review_core.engine.subprocess.Popen"
+            ) as popen:
+                with self.assertRaisesRegex(EngineExecutionError, "outside the project"):
+                    run_engine(["scanner", "--version"], cwd=project_directory)
+
+        popen.assert_not_called()
 
     def test_does_not_search_relative_path_entries_for_scanner_executables(self):
         with patch.dict(os.environ, {"PATH": "."}), patch(
