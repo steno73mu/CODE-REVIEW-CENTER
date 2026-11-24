@@ -20,7 +20,8 @@ The application owns the workflow and the normalized domain model. External tool
 | Persistence | Transactional SQLite scan history, projects and scanner profiles | CODE-REVIEW-CENTER |
 | Application | Shared project-scan service used by CLI and desktop | CODE-REVIEW-CENTER |
 | Presentation | Local CLI and Tkinter desktop workspace | CODE-REVIEW-CENTER |
-| Reporting | JSON, SARIF 2.1.0 and Markdown export | CODE-REVIEW-CENTER |
+| Reporting | JSON, SARIF 2.1.0 and Markdown export, including correlation and triage evidence | CODE-REVIEW-CENTER |
+| Triage | Per-session open/accepted/false-positive/fixed/wont-fix dispositions and notes | CODE-REVIEW-CENTER |
 | Presentation | Desktop interface, history and actionable reports | CODE-REVIEW-CENTER |
 
 ## Integration rules
