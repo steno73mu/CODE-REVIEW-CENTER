@@ -11,6 +11,7 @@ from review_core.orchestration import (
 )
 from review_core.scanning import run_scanner
 from review_core.adapters import parse_semgrep
+from review_core.finding import Finding
 
 
 def _semgrep_report(path="app.py"):
