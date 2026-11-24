@@ -25,7 +25,7 @@ class CommandLineTests(unittest.TestCase):
 
     def invoke(self, args):
         output = io.StringIO()
-        with contextlib.redirect_stdout(output):
+        with contextlib.redirect_stdout(output), contextlib.redirect_stderr(output):
             code = main(args)
         return code, output.getvalue()
 
