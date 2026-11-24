@@ -193,6 +193,10 @@ class ScanStore:
                 "SELECT payload FROM scan_correlations WHERE session_id = ? ORDER BY group_order",
                 (session_id,),
             ).fetchall()
+            ai_reviews = connection.execute(
+                "SELECT * FROM ai_reviews WHERE session_id = ? ORDER BY created_at, review_id",
+                (session_id,),
+            ).fetchall()
         return {
             "session_id": session["session_id"],
             "created_at": session["created_at"],
@@ -202,6 +206,7 @@ class ScanStore:
             "jobs": [dict(job) for job in jobs],
             "findings": [json.loads(row["payload"]) for row in findings],
             "correlations": [json.loads(row["payload"]) for row in correlations],
+            "ai_reviews": [dict(row) for row in ai_reviews],
         }
 
     def list_sessions(self, *, limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:
