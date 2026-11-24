@@ -54,7 +54,6 @@ class EngineRunnerTests(unittest.TestCase):
                 timeout_seconds=0.05,
             )
 
-    @unittest.skipUnless(os.name == "posix", "POSIX process-group behavior")
     def test_timeout_terminates_descendants_that_inherit_output_pipes(self):
         child = "import time; time.sleep(3)"
         parent = (
