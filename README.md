@@ -21,7 +21,7 @@ Modern code review can involve several disconnected tools: static analysis, secr
 
 **CODE-REVIEW-CENTER is being built to bring that work together.**
 
-The goal is not another wrapper around a single scanner. It is an independent product that owns the review workflow, the common finding model, correlation, history, provider configuration, and the experience developers use to investigate and resolve issues.
+The goal is not another wrapper around a single scanner. It is an independent product that owns the review workflow, the common finding model, conservative explainable correlation, history, provider configuration, and the experience developers use to investigate and resolve issues.
 
 ## What makes it different
 
@@ -61,6 +61,7 @@ flowchart LR
 - Native Semgrep JSON adapter.
 - Native Gitleaks JSON adapter, excluding secret values and matched source text.
 - Deterministic exact-fingerprint deduplication.
+- Conservative cross-engine correlation requiring the same file and line plus a high message-similarity score, with explicit pairwise evidence.
 - Trusted external-engine process runner using argument arrays (no shell), execution timeouts, bounded output capture, and process cancellation.
 - Generic scanner invocation that parses stdout into normalized findings and preserves process evidence.
 - Concurrent multi-scanner batches with deterministic result ordering, isolated failures, per-engine timeouts, running-process cancellation, bounded output capture, and aggregate exact deduplication.
@@ -77,7 +78,6 @@ flowchart LR
 <summary><strong>Under development / planned</strong></summary>
 
 - Advanced triage actions, code-context navigation, rich evidence comparison, and report export.
-- Explainable cross-engine finding correlation.
 - Configurable AI-provider management and review orchestration.
 - Advanced triage actions, code-context navigation, rich evidence comparison, report export, and AI-assisted review.
 
