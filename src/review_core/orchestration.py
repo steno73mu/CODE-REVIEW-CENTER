@@ -102,9 +102,9 @@ def run_scan_batch(
 ) -> ScanBatchResult:
     """Run independent trusted scanners concurrently and aggregate their findings.
 
-    Cancellation is cooperative: it prevents queued jobs from starting and
-    is checked immediately before each process launch. Already running scanner
-    processes are bounded by their own timeout and are not force-killed.
+    Cancellation is cooperative: it prevents jobs that have not started from
+    launching and terminates already running scanner processes. Per-stream
+    output is bounded; descendant processes spawned by scanners are not managed.
     """
     if isinstance(max_workers, bool) or not isinstance(max_workers, int) or max_workers < 1:
         raise ValueError("max_workers must be a positive integer")
