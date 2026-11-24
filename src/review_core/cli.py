@@ -141,6 +141,7 @@ def main(argv: list[str] | None = None) -> int:
                     for item in batch.jobs
                 ],
                 "finding_count": len(batch.findings),
+                "correlation_group_count": len(batch.correlations),
                 "findings": [
                     {
                         "tool": finding.tool,
