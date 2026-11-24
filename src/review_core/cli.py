@@ -4,6 +4,7 @@ import argparse
 from dataclasses import asdict
 import json
 import os
+import platform
 from pathlib import Path
 import sys
 import uuid
@@ -43,6 +44,8 @@ def _parser() -> argparse.ArgumentParser:
         description="Local-first multi-engine code review workspace.",
     )
     sub = parser.add_subparsers(dest="resource", required=True)
+
+    sub.add_parser("doctor", help="check local runtime and configured scanner availability (offline)")
 
     project = sub.add_parser("project", help="manage local source directories")
     project_sub = project.add_subparsers(dest="action", required=True)
@@ -134,6 +137,43 @@ def main(argv: list[str] | None = None) -> int:
     triage_store = TriageStore(database)
 
     try:
+        if args.resource == "doctor":
+            import importlib.util
+            import shutil
+            import sqlite3
+            python_ok = sys.version_info >= (3, 11)
+            scanner_checks = []
+            for profile in scanners.list_profiles(enabled_only=True):
+                executable = profile.command[0]
+                available = shutil.which(executable) is not None or Path(executable).is_file()
+                scanner_checks.append({
+                    "id": profile.scanner_id, "executable": executable, "available": available,
+                })
+            provider_checks = [
+                {
+                    "id": profile.provider_id,
+                    "enabled": profile.enabled,
+                    "api_key_env_configured": bool(profile.api_key_env),
+                    "api_key_present": bool(os.environ.get(profile.api_key_env)) if profile.api_key_env else False,
+                }
+                for profile in providers.list_profiles()
+            ]
+            checks = {
+                "python": {"ok": python_ok, "version": platform.python_version()},
+                "sqlite": {"ok": True, "version": sqlite3.sqlite_version},
+                "desktop": {"available": importlib.util.find_spec("tkinter") is not None, "required": False},
+                "application_data": {
+                    "path": str(directory),
+                    "private": os.name == "nt" or (directory.stat().st_mode & 0o777) == 0o700,
+                },
+                "scanners": scanner_checks,
+                "providers": provider_checks,
+            }
+            ok = python_ok and all(item["available"] for item in scanner_checks)
+            checks["application_data"]["ok"] = checks["application_data"]["private"]
+            checks["ok"] = ok and checks["application_data"]["ok"]
+            _json({"ok": checks["ok"], "checks": checks})
+            return 0 if checks["ok"] else 1
         if args.resource == "project":
             if args.action == "add":
                 _json(asdict(projects.register(args.name, args.path)))
