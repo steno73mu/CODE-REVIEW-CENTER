@@ -11,7 +11,7 @@ from .deduplication import deduplicate_findings
 from .engine import EngineCancelledError, EngineExecutionError, EngineTimeoutError
 from .finding import Finding
 from .correlation import CorrelatedFinding, correlate_findings
-from .scanning import ScanResult, run_scanner
+from .scanning import ScanExecutionError, ScanResult, run_scanner
 
 
 class ScanStatus(StrEnum):
@@ -40,6 +40,7 @@ class ScanJobResult:
     job_id: str
     status: ScanStatus
     scan_result: ScanResult | None = None
+    process_result: object | None = None
     error: str | None = None
 
 
@@ -78,6 +79,13 @@ def _execute_job(job: ScanJob, cancel_event: threading.Event) -> ScanJobResult:
             job_id=job.job_id,
             status=ScanStatus.TIMED_OUT,
             error="scanner exceeded its execution timeout",
+        )
+    except ScanExecutionError as exc:
+        return ScanJobResult(
+            job_id=job.job_id,
+            status=ScanStatus.FAILED,
+            process_result=exc.process_result,
+            error=f"scanner execution failed ({type(exc).__name__})",
         )
     except (EngineExecutionError, ValueError, TypeError) as exc:
         return ScanJobResult(
