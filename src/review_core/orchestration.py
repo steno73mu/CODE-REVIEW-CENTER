@@ -114,8 +114,8 @@ def run_scan_batch(
     launching and terminates already running scanner processes. Per-stream
     output is bounded; descendant processes spawned by scanners are not managed.
     """
-    if isinstance(max_workers, bool) or not isinstance(max_workers, int) or max_workers < 1:
-        raise ValueError("max_workers must be a positive integer")
+    if isinstance(max_workers, bool) or not isinstance(max_workers, int) or not 1 <= max_workers <= 32:
+        raise ValueError("max_workers must be an integer between 1 and 32")
     if isinstance(jobs, (str, bytes)) or not isinstance(jobs, Sequence):
         raise ValueError("jobs must be a sequence of ScanJob instances")
 
