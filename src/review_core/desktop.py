@@ -271,23 +271,39 @@ def main() -> int:
             providers.remove(item.provider_id)
             refresh_providers()
 
-    def render_findings(findings):
+    def render_findings(findings, session_id=None):
+        nonlocal current_session_id, current_findings
+        current_session_id = session_id
+        current_findings = list(findings)
+        triage = {item["fingerprint"]: item["status"] for item in triage_store.list_for_session(session_id)} if session_id else {}
         for item in finding_tree.get_children():
             finding_tree.delete(item)
-        for index, finding in enumerate(findings):
+        for index, finding in enumerate(current_findings):
             finding_tree.insert(
-                "",
-                "end",
-                iid=str(index),
+                "", "end", iid=str(index),
                 values=(
-                    finding.severity.value,
-                    finding.tool,
-                    finding.rule_id or "",
-                    finding.path or "",
-                    finding.start_line or "",
-                    finding.message,
+                    finding.severity.value, triage.get(finding.fingerprint, "open"),
+                    finding.tool, finding.rule_id or "", finding.path or "",
+                    finding.start_line or "", finding.message,
                 ),
             )
+
+    def set_finding_status(status):
+        if current_session_id is None:
+            messagebox.showinfo("Finding triage", "Select a saved scan session first.")
+            return
+        selection = finding_tree.selection()
+        if not selection:
+            messagebox.showinfo("Finding triage", "Select a finding first.")
+            return
+        finding = current_findings[int(selection[0])]
+        note = simpledialog.askstring("Finding triage", "Optional reviewer note:") if status != "open" else None
+        try:
+            triage_store.set_status(current_session_id, finding.fingerprint, status, note=note)
+            render_findings(current_findings, current_session_id)
+            status_var.set(f"Finding marked {status}")
+        except (ValueError, TypeError) as exc:
+            messagebox.showerror("Finding triage", str(exc))
 
     def start_scan():
         project = selected_project()
