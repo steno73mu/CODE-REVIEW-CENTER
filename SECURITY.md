@@ -22,5 +22,5 @@ Do not include live credentials, private source code, or personal data in a repo
 - Scanner stdout/stderr capture is bounded; raw scanner output is not persisted by default.
 - Gitleaks secret values and matched source text are not copied into normalized findings.
 - Provider API keys are loaded from environment variables and are not stored in the local database.
-- Remote AI review requires explicit user opt-in and HTTPS. Only normalized finding metadata is sent; source files are not uploaded by this feature.
+- Remote AI review requires explicit user opt-in and HTTPS. Literal and DNS-resolved non-public destination addresses are rejected before a request. This check is not a network sandbox and does not eliminate DNS-rebinding races; use network egress controls for high-risk environments. Only normalized finding metadata is sent; source files are not uploaded by this feature.
 - Self-hosted runners must not execute untrusted pull-request code from forks.
