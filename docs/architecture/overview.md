@@ -15,7 +15,7 @@ The application owns the workflow and the normalized domain model. External tool
 | Correlation | Exact deduplication and later cross-engine correlation | CODE-REVIEW-CENTER |
 | Engine adapters | Start tools, validate exit status, collect output and metadata | CODE-REVIEW-CENTER |
 | Analysis engines | SAST, secret detection, dependency and AI review | External tools or providers, replaceable |
-| Orchestration | Scan lifecycle, concurrency, cancellation and evidence | CODE-REVIEW-CENTER |
+| Orchestration | Concurrent scanner batches, per-engine status, timeout, cooperative cancellation and aggregate evidence | CODE-REVIEW-CENTER |
 | Presentation | Desktop interface, history and actionable reports | CODE-REVIEW-CENTER |
 
 ## Integration rules
