@@ -268,7 +268,7 @@ def main(argv: list[str] | None = None) -> int:
                 _json(result)
 
         return 0
-    except (ValueError, TypeError, OSError, KeyError) as exc:
+    except (AIReviewError, ValueError, TypeError, OSError, KeyError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
