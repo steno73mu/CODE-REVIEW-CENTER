@@ -23,4 +23,5 @@ All notable changes to CODE-REVIEW-CENTER are documented here.
 - Remote AI review requires explicit opt-in; remote endpoints must use HTTPS.
 - Scanner output and provider responses have bounded capture sizes.
 - SQLite connections are explicitly closed after each transaction for Windows compatibility.
+- Application data directory permissions are restricted to the current user on POSIX systems.
 - Public pull-request CI uses GitHub-hosted runners, not the self-hosted Pop!_OS runner.
