@@ -61,10 +61,13 @@ flowchart LR
 - Native Semgrep JSON adapter.
 - Native Gitleaks JSON adapter, excluding secret values and matched source text.
 - Deterministic exact-fingerprint deduplication.
-- Trusted external-engine process runner using argument arrays (no shell), execution timeouts, and captured diagnostics.
+- Trusted external-engine process runner using argument arrays (no shell), execution timeouts, bounded output capture, and process cancellation.
 - Generic scanner invocation that parses stdout into normalized findings and preserves process evidence.
-- Concurrent multi-scanner batches with deterministic result ordering, isolated failures, per-engine timeouts, cooperative cancellation, and aggregate exact deduplication.
-- Transactional SQLite scan history with per-engine outcomes, normalized findings, validated session IDs, and paginated history.\n- Local project registry with stable IDs, canonical directory paths, duplicate protection, and rename/list/remove operations.
+- Concurrent multi-scanner batches with deterministic result ordering, isolated failures, per-engine timeouts, running-process cancellation, bounded output capture, and aggregate exact deduplication.
+- Transactional SQLite scan history with per-engine outcomes, normalized findings, validated session IDs, and paginated history.
+- Local project registry with stable IDs, canonical directory paths, duplicate protection, and rename/list/remove operations.
+- Validated, allowlisted scanner profiles stored in SQLite.
+- `crc` command-line application for project management, scanner configuration, scans, and scan history.
 - Automated Python unit tests and GitHub Actions workflow.
 
 </details>
@@ -72,15 +75,14 @@ flowchart LR
 <details>
 <summary><strong>Under development / planned</strong></summary>
 
-- Scan orchestration, including lifecycle, concurrency, cancellation, and output-size policies.
-- Project and review-history persistence.
+- Desktop interface, interactive triage workflow, and actionable reports.
 - Explainable cross-engine finding correlation.
 - Configurable AI-provider management and review orchestration.
-- Desktop interface, triage workflow, and actionable reports.
+- Desktop interface, interactive triage workflow, and actionable reports.
 
 </details>
 
-This repository is in **early development**. It is not yet a complete desktop application and is not recommended for production use.
+This repository is in **early development**. The local CLI and Python core are usable for controlled experiments; the desktop application is not yet implemented and the project is not recommended for production use.
 
 ## Quick start
 
@@ -93,7 +95,21 @@ cd CODE-REVIEW-CENTER
 PYTHONPATH=src python -m unittest discover -s tests -v
 ```
 
-The current core uses the Python standard library at runtime. The same compile and unit-test checks are configured in GitHub Actions.
+The current core uses the Python standard library at runtime. Install the CLI with `python -m pip install .`. The same compile, CLI smoke-test, and unit-test checks are configured in GitHub Actions.
+
+Register a source directory and configure a trusted local scanner executable (example for Semgrep on Linux/macOS):
+
+```bash
+crc project add --name my-project --path /path/to/repository
+crc scanner add --id semgrep --name Semgrep --parser semgrep \
+  --command-json '["semgrep", "scan", "--json", "--quiet", "{project_path}"]'
+crc project list
+# Copy the project_id from the output, then:
+crc scan --project PROJECT_ID
+crc history list
+```
+
+Scanner profiles accept argument arrays, not shell command strings. The only supported substitution is the standalone `{project_path}` argument. Configure only trusted, locally installed scanner binaries; never place credentials in command arguments. Output capture is bounded per stream (1 MiB by default), and scan history stores normalized findings and execution metadata, not raw stdout/stderr.
 
 ## Project principles
 
