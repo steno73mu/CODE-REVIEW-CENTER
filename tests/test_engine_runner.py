@@ -86,8 +86,9 @@ class EngineRunnerTests(unittest.TestCase):
             thread.join(timeout=1)
 
     def test_rejects_invalid_output_limit(self):
-        with self.assertRaises(EngineExecutionError):
-            run_engine([sys.executable, "--version"], max_output_bytes=0)
+        for limit in (0, 64 * 1024 * 1024 + 1):
+            with self.subTest(limit=limit), self.assertRaises(EngineExecutionError):
+                run_engine([sys.executable, "--version"], max_output_bytes=limit)
 
 
 if __name__ == "__main__":
