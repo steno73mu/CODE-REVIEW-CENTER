@@ -70,6 +70,7 @@ flowchart LR
 - Validated, allowlisted scanner profiles stored in SQLite.
 - `crc` command-line application for project management, scanner configuration, scans, and scan history.
 - `crc-desktop` local desktop workspace for projects, scanner profiles, background scans, findings, and history.
+- OpenAI-compatible provider profiles and AI finding reviews through `crc provider` and `crc review` commands.
 - Automated Python unit tests and GitHub Actions workflow.
 
 </details>
@@ -116,9 +117,16 @@ crc project list
 # Copy the project_id from the output, then:
 crc scan --project PROJECT_ID
 crc history list
+
+# Optional local AI review (Ollama / LM Studio OpenAI-compatible endpoint):
+crc provider add --id local --name "Local model" \
+  --url http://127.0.0.1:11434/v1 --model YOUR_LOCAL_MODEL
+crc review --session SESSION_ID --provider local
 ```
 
 Scanner profiles accept argument arrays, not shell command strings. The only supported substitution is the standalone `{project_path}` argument. Configure only trusted, locally installed scanner binaries; never place credentials in command arguments. Output capture is bounded per stream (1 MiB by default), and scan history stores normalized findings and execution metadata, not raw stdout/stderr.
+
+AI provider profiles use the OpenAI-compatible Chat Completions API. API keys are referenced by environment-variable name and never stored in SQLite. Loopback HTTP endpoints are supported for local models; remote endpoints must use HTTPS and require the explicit `--allow-external` flag at review time. Only finding metadata is sent—no source files or code excerpts are uploaded. Review responses are saved in the local scan history.
 
 ## Project principles
 
