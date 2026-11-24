@@ -156,7 +156,7 @@ Supported report formats are JSON, SARIF 2.1.0, and Markdown. Existing output fi
 
 ## Current status and release readiness
 
-This is a functional MVP in early development, not yet a production release. CI builds and installs wheel and source-distribution artifacts on Linux and Windows with Python 3.11-3.13. The desktop interface still needs interactive testing on real Pop!_OS and Windows desktops. Cross-engine correlation needs a larger labeled fixture corpus, and the scanner presets need validation against real installed scanner versions.
+This is a functional MVP in early development, not yet a production release. CI builds and installs wheel and source-distribution artifacts on Linux and Windows with Python 3.11-3.13, and smoke-tests Tk workspace startup on Linux (Xvfb) and Windows. Manual interactive usability testing is still required. The desktop interface still needs interactive testing on real Pop!_OS and Windows desktops. Cross-engine correlation needs a larger labeled fixture corpus, and the scanner presets need validation against real installed scanner versions.
 
 **Licensing:** no repository license has been selected yet. Public visibility does not grant permission to reuse or redistribute this project's code. A license decision and third-party license/notice audit are required before a formal open-source release.
 
