@@ -58,7 +58,7 @@ class ReportGenerationTests(unittest.TestCase):
         self.assertIn("Unsafe deserialization", rendered)
         self.assertIn("98%", rendered)
         self.assertIn("src/app.py:12", rendered)
-        self.assertIn("false_positive", rendered)
+        self.assertIn(r"false\_positive", rendered)
 
     def test_escapes_untrusted_finding_markdown_and_fences_ai_review_content(self):
         record = self._record()
