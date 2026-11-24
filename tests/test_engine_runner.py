@@ -38,6 +38,15 @@ class EngineRunnerTests(unittest.TestCase):
         which.assert_called_once()
         self.assertEqual(which.call_args.args[0], "python")
 
+    def test_does_not_search_relative_path_entries_for_scanner_executables(self):
+        with patch.dict(os.environ, {"PATH": "."}), patch(
+            "shutil.which", return_value=sys.executable
+        ) as which:
+            with self.assertRaises(EngineExecutionError):
+                run_engine(["python", "--version"])
+
+        which.assert_not_called()
+
     def test_passes_arguments_without_shell_interpretation(self):
         literal = "value; touch SHOULD_NOT_EXIST"
         result = run_engine([sys.executable, "-c", "import sys; print(sys.argv[1])", literal])
