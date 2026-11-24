@@ -72,6 +72,8 @@ def main() -> int:
     project_buttons = ttk.Frame(sidebar)
     project_buttons.pack(fill="x")
     ttk.Button(project_buttons, text="Add folder", command=lambda: add_project()).pack(side="left")
+    ttk.Button(project_buttons, text="Add GitHub", command=lambda: add_github_project()).pack(side="left", padx=4)
+    ttk.Button(project_buttons, text="Update", command=lambda: update_project()).pack(side="left")
     ttk.Button(project_buttons, text="Remove", command=lambda: remove_project()).pack(side="left", padx=4)
 
     ttk.Separator(sidebar).pack(fill="x", pady=12)
@@ -198,6 +200,47 @@ def main() -> int:
             status_var.set("Project registered")
         except (ValueError, OSError) as exc:
             messagebox.showerror("Project", str(exc))
+
+    def add_github_project():
+        url = simpledialog.askstring("GitHub repository", "Repository URL (https://github.com/owner/repository):")
+        if not url:
+            return
+        branch = simpledialog.askstring("GitHub repository", "Branch to analyze (leave blank for the default branch):")
+        name = simpledialog.askstring(
+            "Project name", "Name this project:",
+            initialvalue=Path(url.rstrip("/").removesuffix(".git")).name,
+        )
+        if not name:
+            return
+        status_var.set("Downloading GitHub repository…")
+        threading.Thread(target=github_clone_worker, args=(name, url, branch or None), daemon=True).start()
+
+    def github_clone_worker(name, url, branch):
+        checkout = None
+        try:
+            checkout = clone_github_repository(url, ensure_data_directory() / "repositories", branch=branch)
+            project = projects.register(name, checkout)
+            events.put(("github_success", project.name, checkout))
+        except Exception as exc:
+            if checkout is not None:
+                import shutil
+                shutil.rmtree(checkout, ignore_errors=True)
+            events.put(("github_error", type(exc).__name__, str(exc)))
+
+    def update_project():
+        item = selected_project()
+        if item is None:
+            messagebox.showinfo("Update repository", "Select a repository first.")
+            return
+        status_var.set(f"Updating {item.name} from GitHub…")
+        threading.Thread(target=github_update_worker, args=(item,), daemon=True).start()
+
+    def github_update_worker(item):
+        try:
+            update_github_repository(item.path)
+            events.put(("github_updated", item.name, item.path))
+        except Exception as exc:
+            events.put(("github_error", type(exc).__name__, str(exc)))
 
     def remove_project():
         item = selected_project()
@@ -437,6 +480,13 @@ def main() -> int:
                 elif event[0] == "github_updated":
                     _, project_name, checkout = event
                     status_var.set(f"GitHub repository updated · {project_name}")
+                elif event[0] == "github_success":
+                    _, project_name, checkout = event
+                    refresh_projects()
+                    status_var.set(f"GitHub repository ready for local review · {project_name}")
+                elif event[0] == "github_updated":
+                    _, project_name, checkout = event
+                    status_var.set(f"GitHub repository updated · {project_name}")
                 elif event[0] == "review_success":
                     _, review_id, review = event
                     status_var.set(f"AI review saved · {review.provider_id}")
@@ -448,7 +498,7 @@ def main() -> int:
                     review_text.insert("1.0", review.content)
                     review_text.configure(state="disabled")
                     refresh_history()
-                else:
+                elif event[0] in {"scan_error", "review_error", "github_error"}:
                     _, error_type, message = event
                     status_var.set("Operation failed")
                     messagebox.showerror("Operation failed", f"{error_type}: {message}")
