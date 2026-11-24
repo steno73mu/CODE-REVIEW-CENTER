@@ -1,4 +1,5 @@
 import os
+import shutil
 import sys
 import tempfile
 import threading
@@ -27,7 +28,7 @@ class EngineRunnerTests(unittest.TestCase):
 
     def test_resolves_bare_executable_from_path_before_changing_to_project_directory(self):
         with tempfile.TemporaryDirectory() as project_directory:
-            with patch("review_core.engine.shutil.which", return_value=sys.executable) as which:
+            with patch("shutil.which", return_value=sys.executable) as which:
                 result = run_engine(
                     ["python", "-c", "print('trusted executable')"],
                     cwd=project_directory,
