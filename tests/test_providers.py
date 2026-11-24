@@ -111,6 +111,11 @@ class ProviderIntegrationTests(unittest.TestCase):
         with self.assertRaises(AIReviewError):
             AIReviewClient().review_findings(self.profile, [])
 
+    def test_rejects_oversized_finding_payload_before_network_request(self):
+        huge = Finding(tool="Scanner", message="x" * (1024 * 1024 + 100))
+        with self.assertRaises(AIReviewError):
+            AIReviewClient().review_findings(self.profile, [huge])
+
 
 if __name__ == "__main__":
     unittest.main()
