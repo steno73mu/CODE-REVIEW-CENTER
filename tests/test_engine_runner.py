@@ -1,3 +1,4 @@
+import os
 import sys
 import threading
 import time
@@ -52,6 +53,23 @@ class EngineRunnerTests(unittest.TestCase):
                 [sys.executable, "-c", "import time; time.sleep(2)"],
                 timeout_seconds=0.05,
             )
+
+    @unittest.skipUnless(os.name == "posix", "POSIX process-group behavior")
+    def test_timeout_terminates_descendants_that_inherit_output_pipes(self):
+        child = "import time; time.sleep(3)"
+        parent = (
+            "import subprocess, sys, time; "
+            "subprocess.Popen([sys.executable, '-c', sys.argv[1]]); "
+            "time.sleep(10)"
+        )
+        started = time.monotonic()
+        with self.assertRaises(EngineTimeoutError):
+            run_engine(
+                [sys.executable, "-c", parent, child],
+                timeout_seconds=0.15,
+            )
+
+        self.assertLess(time.monotonic() - started, 2.0)
 
     def test_rejects_non_positive_timeout(self):
         with self.assertRaises(EngineExecutionError):
