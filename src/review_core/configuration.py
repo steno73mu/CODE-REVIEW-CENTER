@@ -29,7 +29,7 @@ class ScannerProfile:
             raise ValueError("scanner_id must be 1-64 safe letters, digits, dots, underscores or hyphens")
         if not isinstance(self.name, str) or not _NAME.fullmatch(self.name.strip()):
             raise ValueError("scanner name must not be empty")
-        if self.parser not in _ALLOWED_PARSERS:
+        if not isinstance(self.parser, str) or self.parser not in _ALLOWED_PARSERS:
             raise ValueError(f"parser must be one of: {', '.join(sorted(_ALLOWED_PARSERS))}")
         if (
             isinstance(self.command, (str, bytes))
