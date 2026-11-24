@@ -141,6 +141,23 @@ class ScanStore:
                         "INSERT INTO findings (session_id, fingerprint, payload) VALUES (?, ?, ?)",
                         (session_id, finding.fingerprint, payload),
                     )
+                for order, group in enumerate(batch.correlations):
+                    payload = {
+                        "fingerprints": [finding.fingerprint for finding in group.findings],
+                        "evidence": [
+                            {
+                                "left_fingerprint": evidence.left_fingerprint,
+                                "right_fingerprint": evidence.right_fingerprint,
+                                "method": evidence.method,
+                                "similarity": evidence.similarity,
+                            }
+                            for evidence in group.evidence
+                        ],
+                    }
+                    connection.execute(
+                        "INSERT INTO scan_correlations (session_id, group_order, payload) VALUES (?, ?, ?)",
+                        (session_id, order, json.dumps(payload, sort_keys=True, separators=(",", ":"))),
+                    )
             except sqlite3.IntegrityError as exc:
                 raise ValueError(f"scan session {session_id!r} already exists or violates storage constraints") from exc
 
