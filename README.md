@@ -68,6 +68,7 @@ flowchart LR
 - Local project registry with stable IDs, canonical directory paths, duplicate protection, and rename/list/remove operations.
 - Validated, allowlisted scanner profiles stored in SQLite.
 - `crc` command-line application for project management, scanner configuration, scans, and scan history.
+- `crc-desktop` local desktop workspace for projects, scanner profiles, background scans, findings, and history.
 - Automated Python unit tests and GitHub Actions workflow.
 
 </details>
@@ -75,7 +76,7 @@ flowchart LR
 <details>
 <summary><strong>Under development / planned</strong></summary>
 
-- Desktop interface, interactive triage workflow, and actionable reports.
+- Advanced triage actions, code-context navigation, rich evidence comparison, and report export.
 - Explainable cross-engine finding correlation.
 - Configurable AI-provider management and review orchestration.
 - Desktop interface, interactive triage workflow, and actionable reports.
@@ -95,7 +96,15 @@ cd CODE-REVIEW-CENTER
 PYTHONPATH=src python -m unittest discover -s tests -v
 ```
 
-The current core uses the Python standard library at runtime. Install the CLI with `python -m pip install .`. The same compile, CLI smoke-test, and unit-test checks are configured in GitHub Actions.
+The current core uses the Python standard library at runtime. Install the CLI and desktop launcher with `python -m pip install .`. The same compile, CLI smoke-test, desktop-module import, and unit-test checks are configured in GitHub Actions.
+
+Launch the desktop workspace with:
+
+```bash
+crc-desktop
+```
+
+On Linux distributions where Tkinter is packaged separately, install the matching `python3-tk` package for the Python interpreter in use. The desktop workspace provides local project registration, scanner profile management, background scan execution with cancellation, finding review, and scan history. It binds to no network port and stores local state in the application data directory.
 
 Register a source directory and configure a trusted local scanner executable (example for Semgrep on Linux/macOS):
 
