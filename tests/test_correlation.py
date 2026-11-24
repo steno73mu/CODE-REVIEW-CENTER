@@ -57,6 +57,16 @@ class FindingCorrelationTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     correlate_findings([], minimum_similarity=threshold)
 
+    def test_never_places_two_findings_from_the_same_tool_in_one_group(self):
+        findings = [
+            Finding(tool="A", path="app.py", start_line=2, message="Unsafe call"),
+            Finding(tool="B", path="app.py", start_line=2, message="Unsafe call"),
+            Finding(tool="B", path="app.py", start_line=2, message="Unsafe call"),
+        ]
+        groups = correlate_findings(findings)
+        self.assertEqual(len(groups), 1)
+        self.assertEqual([item.tool for item in groups[0].findings], ["A", "B"])
+
 
 if __name__ == "__main__":
     unittest.main()
