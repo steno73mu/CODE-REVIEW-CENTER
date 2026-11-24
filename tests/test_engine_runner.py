@@ -43,7 +43,7 @@ class EngineRunnerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as project_directory:
             fake_executable = Path(project_directory) / "scanner"
             with patch("shutil.which", return_value=str(fake_executable)), patch(
-                "review_core.engine.subprocess.Popen"
+                "review_core.engine.subprocess.Popen", side_effect=AssertionError("scanner launch should not happen")
             ) as popen:
                 with self.assertRaisesRegex(EngineExecutionError, "outside the project"):
                     run_engine(["scanner", "--version"], cwd=project_directory)
