@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Sequence
+import threading
 from dataclasses import dataclass
 
 from .engine import EngineExecutionError, EngineResult, run_engine
@@ -39,6 +40,8 @@ def run_scanner(
     timeout_seconds: float = 300.0,
     cwd: str | None = None,
     env: dict[str, str] | None = None,
+    max_output_bytes: int = 1_048_576,
+    cancel_event: threading.Event | None = None,
 ) -> ScanResult:
     """Execute a trusted scanner and normalize its stdout report.
 
@@ -64,6 +67,8 @@ def run_scanner(
         timeout_seconds=timeout_seconds,
         cwd=cwd,
         env=env,
+        max_output_bytes=max_output_bytes,
+        cancel_event=cancel_event,
     )
     if process_result.returncode not in accepted_exit_codes:
         raise ScanExecutionError(
