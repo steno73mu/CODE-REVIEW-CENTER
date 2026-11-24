@@ -125,6 +125,8 @@ class ScanOrchestrationTests(unittest.TestCase):
             ScanJob("b", [sys.executable, "-c", "print('report')"], second),
         ]
         result = run_scan_batch(jobs, max_workers=2)
+        self.assertEqual([item.status for item in result.jobs], [ScanStatus.SUCCEEDED, ScanStatus.SUCCEEDED])
+        self.assertEqual(len(result.findings), 2)
         self.assertEqual(len(result.correlations), 1)
         self.assertEqual(len(result.correlations[0].findings), 2)
 
