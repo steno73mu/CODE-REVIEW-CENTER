@@ -13,6 +13,7 @@ from .configuration import ProviderConfigStore, ProviderProfile, ScannerConfigSt
 from .application import build_scan_jobs, scan_project
 from .correlation import CorrelatedFinding, CorrelationEvidence, correlate_findings
 from .providers import AIReviewClient, AIReviewError, AIReviewResult
+from .reports import render_report, write_report
 
 __all__ = [
     "AIReviewClient",
@@ -46,6 +47,8 @@ __all__ = [
     "parse_sarif",
     "parse_semgrep",
     "scan_project",
+    "render_report",
+    "write_report",
     "run_engine",
     "run_scanner",
     "run_scan_batch",
