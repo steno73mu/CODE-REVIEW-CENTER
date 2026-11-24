@@ -41,7 +41,7 @@ The initial Python package lives in src/review_core/.
 
 The core currently uses Python 3.11+ and the standard library only.
 
-`run_engine` launches a trusted executable from an argument sequence (never through a shell), applies a positive timeout, and captures UTF-8 stdout/stderr, exit status, and duration. Non-zero exit codes remain available to the caller because scanners may use them to signal findings. Startup failures and timeouts have distinct exception types. The runner is not a sandbox: only trusted, locally installed analysis binaries may be invoked, and untrusted repository scripts, hooks, or build commands must never be executed by this layer.
+`run_engine` launches a trusted executable from an argument sequence (never through a shell), applies a positive timeout, captures UTF-8 stdout/stderr up to a configurable byte limit per stream, and records exit status, duration, and truncation flags. It can terminate a running process on timeout or cancellation. Non-zero exit codes remain available to the caller because scanners may use them to signal findings. Startup failures and timeouts have distinct exception types. The runner is not a sandbox: only trusted, locally installed analysis binaries may be invoked, and untrusted repository scripts, hooks, or build commands must never be executed by this layer.
 
 ## Implementation sequence
 
