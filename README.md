@@ -131,6 +131,10 @@ Scanner profiles accept argument arrays, not shell command strings. The only sup
 
 AI provider profiles use the OpenAI-compatible Chat Completions API. API keys are referenced by environment-variable name and never stored in SQLite. Loopback HTTP endpoints are supported for local models; remote endpoints must use HTTPS and require the explicit `--allow-external` flag at review time. Only finding metadata is sent—no source files or code excerpts are uploaded. Review responses are saved in the local scan history. Export saved sessions as JSON, SARIF 2.1.0, or Markdown with `crc report`; the desktop History tab also offers report export. Existing output files are not overwritten unless explicitly confirmed.
 
+## Finding triage
+
+Finding dispositions are stored per scan session: `open`, `accepted`, `false_positive`, `fixed`, or `wont_fix`. Use `crc triage list --session SESSION_ID` to inspect them and `crc triage set --session SESSION_ID --fingerprint SHA256 --status fixed --note "Verified in patch"` to update one. Triage state is included in JSON/SARIF/Markdown exports.
+
 ## Project principles
 
 **Licensing note:** no repository license has been selected yet. Until a license is added, public visibility does not grant permission to reuse or redistribute this project's code.
