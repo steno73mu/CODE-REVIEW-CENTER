@@ -117,6 +117,17 @@ class ScanOrchestrationTests(unittest.TestCase):
         self.assertEqual(result.jobs[0].status, ScanStatus.FAILED)
         self.assertNotIn(secret, result.jobs[0].error)
 
+    def test_batch_includes_explainable_cross_engine_correlations(self):
+        first = lambda _report: [Finding(tool="EngineA", path="app.py", start_line=9, message="Unsafe call")]
+        second = lambda _report: [Finding(tool="EngineB", path="app.py", start_line=9, message="Unsafe call")]
+        jobs = [
+            ScanJob("a", [sys.executable, "-c", "print('report')"], first),
+            ScanJob("b", [sys.executable, "-c", "print('report')"], second),
+        ]
+        result = run_scan_batch(jobs, max_workers=2)
+        self.assertEqual(len(result.correlations), 1)
+        self.assertEqual(len(result.correlations[0].findings), 2)
+
 
 if __name__ == "__main__":
     unittest.main()
