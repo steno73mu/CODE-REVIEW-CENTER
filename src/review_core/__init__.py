@@ -9,6 +9,7 @@ from .scanning import ScanExecutionError, ScanResult, run_scanner
 from .orchestration import ScanBatchResult, ScanJob, ScanJobResult, ScanStatus, run_scan_batch
 from .storage import ScanStore
 from .projects import Project, ProjectRegistry
+from .configuration import ScannerConfigStore, ScannerProfile
 
 __all__ = [
     "EngineExecutionError",
@@ -23,6 +24,8 @@ __all__ = [
     "ScanStore",
     "Project",
     "ProjectRegistry",
+    "ScannerConfigStore",
+    "ScannerProfile",
     "ScanResult",
     "FindingSeverity",
     "deduplicate_findings",
