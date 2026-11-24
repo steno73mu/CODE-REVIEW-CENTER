@@ -1,8 +1,10 @@
 import os
 import sys
+import tempfile
 import threading
 import time
 import unittest
+from unittest.mock import patch
 
 from review_core.engine import (
     EngineCancelledError,
@@ -22,6 +24,18 @@ class EngineRunnerTests(unittest.TestCase):
         self.assertEqual(result.stdout.strip(), "ready")
         self.assertEqual(result.stderr.strip(), "note")
         self.assertGreaterEqual(result.duration_seconds, 0)
+
+    def test_resolves_bare_executable_from_path_before_changing_to_project_directory(self):
+        with tempfile.TemporaryDirectory() as project_directory:
+            with patch("review_core.engine.shutil.which", return_value=sys.executable) as which:
+                result = run_engine(
+                    ["python", "-c", "print('trusted executable')"],
+                    cwd=project_directory,
+                )
+
+        self.assertEqual(result.stdout.strip(), "trusted executable")
+        which.assert_called_once()
+        self.assertEqual(which.call_args.args[0], "python")
 
     def test_passes_arguments_without_shell_interpretation(self):
         literal = "value; touch SHOULD_NOT_EXIST"
