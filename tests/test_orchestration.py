@@ -142,6 +142,13 @@ class ScanOrchestrationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             run_scan_batch([])
 
+    def test_rejects_invalid_worker_limits_and_duplicate_job_ids(self):
+        job = ScanJob("same", [sys.executable, "-c", "print('{}')"], parse_semgrep)
+        for workers in (0, 33, True):
+            with self.subTest(workers=workers), self.assertRaises(ValueError):
+                run_scan_batch([job], max_workers=workers)
+        with self.assertRaises(ValueError):
+            run_scan_batch([job, job])
 
 if __name__ == "__main__":
     unittest.main()
