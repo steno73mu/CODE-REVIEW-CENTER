@@ -7,9 +7,9 @@ The current branch is a functional MVP, not a production release. Complete this 
 - [ ] Select a repository license with the project owner. No license is currently granted by this repository.
 - [x] Record current upstream scanner license files and confirm that scanner source/binaries are not vendored; see [third-party integration notes](third-party-integrations.md).
 - [ ] Complete a version-specific license/notice audit for the exact scanner releases used in cross-platform integration tests and for any future dependencies.
-- [ ] Record the tested Semgrep and Gitleaks versions, installation instructions, and license terms. Scanner binaries are external tools and are not bundled.
+- [x] Record the tested Semgrep and Gitleaks versions, installation instructions, and upstream license terms. Scanner binaries are external tools and are not bundled; see [third-party integration notes](third-party-integrations.md).
 - [ ] Validate the built-in Semgrep preset against a real local repository and confirm exit-code behavior.
-- [ ] Validate the Gitleaks adapter and a supported cross-platform invocation on Linux and Windows.
+- [x] Validate the Gitleaks adapter and a supported cross-platform invocation on Linux and Windows; CI confirms redacted output on both platforms.
 - [ ] Run the Tkinter desktop application interactively on real Pop!_OS and Windows desktops, including scan cancellation, triage, AI review, and report export.
 - [ ] Test local providers (Ollama and/or LM Studio) and at least one remote OpenAI-compatible provider with explicit consent and a non-production test key.
 - [ ] Review data retention, local database backup/restore, permissions, and user-facing disclosure for AI review metadata.
