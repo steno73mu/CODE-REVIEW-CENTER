@@ -28,8 +28,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Compile source and tests
         run: python -m compileall -q src tests
-      - name: Install package without runtime dependencies
-        run: python -m pip install "setuptools>=68" && python -m pip install --no-deps --no-build-isolation .
+      - name: Build wheel and source distribution
+        run: python -m pip install "setuptools>=68" build && python -m build --sdist --wheel --outdir dist
+      - name: Install built source distribution
+        run: python -c "from pathlib import Path; import subprocess, sys; artifact = next(Path('dist').glob('*.tar.gz')); subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--no-deps', '--no-build-isolation', '--force-reinstall', str(artifact)])"
       - name: Verify installed CLI entry point
         run: crc --help
       - name: Verify desktop module imports without opening a display
