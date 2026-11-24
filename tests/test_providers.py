@@ -100,7 +100,7 @@ class ProviderIntegrationTests(unittest.TestCase):
             (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("127.0.0.1", 443)),
             (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("203.0.113.10", 443)),
         ]
-        with patch("review_core.providers.socket.getaddrinfo", return_value=records), patch(
+        with patch("socket.getaddrinfo", return_value=records), patch(
             "review_core.providers.build_opener"
         ) as build_opener:
             with self.assertRaisesRegex(AIReviewError, "public network"):
