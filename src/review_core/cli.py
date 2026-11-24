@@ -29,6 +29,14 @@ def data_directory() -> Path:
     return base / "code-review-center"
 
 
+def ensure_data_directory() -> Path:
+    directory = data_directory()
+    directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if os.name != "nt":
+        directory.chmod(0o700)
+    return directory
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="crc",
@@ -111,8 +119,7 @@ def _json(data: object) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
-    directory = data_directory()
-    directory.mkdir(parents=True, exist_ok=True)
+    directory = ensure_data_directory()
     database = directory / "review.sqlite3"
     projects = ProjectRegistry(database)
     scanners = ScannerConfigStore(database)
