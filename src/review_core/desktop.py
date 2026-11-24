@@ -7,6 +7,10 @@ import threading
 import uuid
 
 
+def _is_scan_completion_event(event_type: str) -> bool:
+    return event_type in {"success", "scan_error"}
+
+
 def main() -> int:
     try:
         import tkinter as tk
@@ -330,7 +334,7 @@ def main() -> int:
             history.save_batch(session_id, batch)
             events.put(("success", session_id, batch))
         except Exception as exc:
-            events.put(("error", type(exc).__name__, str(exc)))
+            events.put(("scan_error", type(exc).__name__, str(exc)))
 
     def show_history():
         selection = history_tree.selection()
@@ -409,14 +413,15 @@ def main() -> int:
             review_id = history.save_ai_review(session_id, result)
             events.put(("review_success", review_id, result))
         except Exception as exc:
-            events.put(("error", type(exc).__name__, str(exc)))
+            events.put(("review_error", type(exc).__name__, str(exc)))
 
     def poll_events():
         try:
             while True:
                 event = events.get_nowait()
-                scan_button.configure(state="normal")
-                cancel_button.configure(state="disabled")
+                if _is_scan_completion_event(event[0]):
+                    scan_button.configure(state="normal")
+                    cancel_button.configure(state="disabled")
                 if event[0] == "success":
                     _, session_id, batch = event
                     render_findings(batch.findings, session_id)
