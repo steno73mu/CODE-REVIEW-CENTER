@@ -59,6 +59,19 @@ class CommandLineTests(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertIn("unknown project", output)
 
+    def test_remote_ai_review_requires_explicit_opt_in(self):
+        code, output = self.invoke([
+            "provider", "add", "--id", "remote", "--name", "Remote reviewer",
+            "--url", "https://api.example.com/v1", "--model", "review-model",
+        ])
+        self.assertEqual(code, 0, output)
+        self.assertNotIn("api_key", output.lower())
+        code, output = self.invoke([
+            "review", "--session", "missing-session", "--provider", "remote",
+        ])
+        self.assertEqual(code, 2)
+        self.assertIn("unknown scan session", output)
+
 
 if __name__ == "__main__":
     unittest.main()
