@@ -5,7 +5,8 @@ The current branch is a functional MVP, not a production release. Complete this 
 ## Required decisions and validation
 
 - [ ] Select a repository license with the project owner. No license is currently granted by this repository.
-- [ ] Audit all copied/adapted code, dependencies, GitHub Actions, scanner integrations, and documentation for license compatibility and required notices.
+- [x] Record current upstream scanner license files and confirm that scanner source/binaries are not vendored; see [third-party integration notes](third-party-integrations.md).
+- [ ] Complete a version-specific license/notice audit for the exact scanner releases used in cross-platform integration tests and for any future dependencies.
 - [ ] Record the tested Semgrep and Gitleaks versions, installation instructions, and license terms. Scanner binaries are external tools and are not bundled.
 - [ ] Validate the built-in Semgrep preset against a real local repository and confirm exit-code behavior.
 - [ ] Validate the Gitleaks adapter and a supported cross-platform invocation on Linux and Windows.
