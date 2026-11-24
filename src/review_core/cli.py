@@ -16,7 +16,8 @@ from .projects import ProjectRegistry
 from .storage import ScanStore
 from .finding import Finding
 from .reports import render_report, write_report
-from .triage import TriageStore, TriageStatus\nfrom .github_source import clone_github_repository, update_github_repository, validate_github_url
+from .triage import TriageStore, TriageStatus
+from .github_source import clone_github_repository, update_github_repository, validate_github_url
 
 
 def data_directory() -> Path:
@@ -51,7 +52,13 @@ def _parser() -> argparse.ArgumentParser:
     project_sub = project.add_subparsers(dest="action", required=True)
     add_project = project_sub.add_parser("add")
     add_project.add_argument("--name", required=True)
-    add_project.add_argument("--path", required=True)\n    clone_project = project_sub.add_parser("clone", help="clone a GitHub repository for local analysis")\n    clone_project.add_argument("--name")\n    clone_project.add_argument("--url", required=True)\n    clone_project.add_argument("--branch")\n    update_project = project_sub.add_parser("update", help="fast-forward a cloned GitHub repository")\n    update_project.add_argument("project_id")
+    add_project.add_argument("--path", required=True)
+    clone_project = project_sub.add_parser("clone", help="clone a GitHub repository for local analysis")
+    clone_project.add_argument("--name")
+    clone_project.add_argument("--url", required=True)
+    clone_project.add_argument("--branch")
+    update_project = project_sub.add_parser("update", help="fast-forward a cloned GitHub repository")
+    update_project.add_argument("project_id")
     project_sub.add_parser("list")
     remove_project = project_sub.add_parser("remove")
     remove_project.add_argument("project_id")
