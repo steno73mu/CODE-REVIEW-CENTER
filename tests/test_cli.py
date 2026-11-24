@@ -109,6 +109,14 @@ class CommandLineTests(unittest.TestCase):
         profile = json.loads(output)
         self.assertEqual(profile["parser"], "semgrep")
         self.assertEqual(profile["command"][-1], "{project_path}")
+    def test_doctor_reports_local_environment_without_network_access(self):
+        code, output = self.invoke(["doctor"])
+        self.assertEqual(code, 0, output)
+        report = json.loads(output)
+        self.assertTrue(report["ok"])
+        self.assertIn("python", report["checks"])
+        self.assertIn("sqlite", report["checks"])
+        self.assertIn("desktop", report["checks"])
 
 if __name__ == "__main__":
     unittest.main()
