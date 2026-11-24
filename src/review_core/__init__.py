@@ -2,7 +2,7 @@
 
 from .adapters import parse_gitleaks, parse_semgrep
 from .deduplication import deduplicate_findings
-from .engine import EngineExecutionError, EngineResult, EngineTimeoutError, run_engine
+from .engine import EngineCancelledError, EngineExecutionError, EngineResult, EngineTimeoutError, run_engine
 from .finding import Finding, FindingSeverity
 from .sarif import parse_sarif
 from .scanning import ScanExecutionError, ScanResult, run_scanner
@@ -12,6 +12,7 @@ from .projects import Project, ProjectRegistry
 from .configuration import ScannerConfigStore, ScannerProfile
 
 __all__ = [
+    "EngineCancelledError",
     "EngineExecutionError",
     "EngineResult",
     "EngineTimeoutError",
