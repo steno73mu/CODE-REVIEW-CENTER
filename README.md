@@ -107,7 +107,15 @@ crc-desktop
 
 On Linux distributions where Tkinter is packaged separately, install the matching `python3-tk` package for the Python interpreter in use. The desktop workspace provides local project registration, scanner profile management, background scan execution with cancellation, finding review, and scan history. It binds to no network port and stores local state in the application data directory.
 
-Register a source directory and configure a trusted local scanner executable (example for Semgrep on Linux/macOS):
+Register a source directory and add the built-in Semgrep preset (the Semgrep executable must already be installed and available on PATH):
+
+```bash
+crc project add --name my-project --path /path/to/repository
+crc scanner preset add semgrep
+crc scan --project PROJECT_ID
+```
+
+For custom scanners, configure an explicit trusted argument array (example for Semgrep on Linux/macOS):
 
 ```bash
 crc project add --name my-project --path /path/to/repository
