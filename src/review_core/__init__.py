@@ -14,6 +14,7 @@ from .application import build_scan_jobs, scan_project
 from .correlation import CorrelatedFinding, CorrelationEvidence, correlate_findings
 from .providers import AIReviewClient, AIReviewError, AIReviewResult
 from .reports import render_report, write_report
+from .triage import TriageStatus, TriageStore
 
 __all__ = [
     "AIReviewClient",
@@ -36,6 +37,8 @@ __all__ = [
     "ProviderProfile",
     "Project",
     "ProjectRegistry",
+    "TriageStatus",
+    "TriageStore",
     "ScannerConfigStore",
     "ScannerProfile",
     "ScanResult",
