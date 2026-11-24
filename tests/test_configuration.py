@@ -35,6 +35,8 @@ class ScannerConfigStoreTests(unittest.TestCase):
     def test_rejects_invalid_placeholders_and_exit_codes(self):
         for command, codes in (
             (("semgrep", "{unknown}"), (0,)),
+            (("semgrep", "--source={project_path}"), (0,)),
+            ((" ",), (0,)),
             (("semgrep",), (True,)),
             (("semgrep",), ()),
         ):
