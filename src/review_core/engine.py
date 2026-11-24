@@ -145,28 +145,6 @@ def _resolve_executable(
                 "analysis engine executable must be outside the project directory"
             )
     return resolved
-        except (OSError, ValueError) as exc:
-            raise EngineExecutionError("could not resolve configured analysis engine executable") from exc
-
-    search_path = (
-        env["PATH"]
-        if env is not None and "PATH" in env
-        else os.environ.get("PATH", os.defpath)
-    )
-    trusted_path = os.pathsep.join(
-        entry for entry in search_path.split(os.pathsep)
-        if entry and os.path.isabs(entry)
-    )
-    if not trusted_path:
-        raise EngineExecutionError(
-            "analysis engine PATH must contain at least one absolute directory"
-        )
-    resolved = shutil.which(executable, path=trusted_path)
-    if resolved is None:
-        raise EngineExecutionError("analysis engine executable was not found on PATH")
-    return os.path.abspath(resolved)
-
-
 def _terminate_process_tree(process: subprocess.Popen) -> None:
     """Terminate the scanner and any child processes it started."""
     if os.name == "nt":
