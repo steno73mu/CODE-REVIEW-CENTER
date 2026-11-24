@@ -21,7 +21,7 @@ All notable changes to CODE-REVIEW-CENTER are documented here.
 ### Security
 - Gitleaks secret values and matched source text are excluded from normalized findings.
 - Provider API keys are referenced through environment variables and are never stored in SQLite.
-- Remote AI review requires explicit opt-in; remote endpoints must use HTTPS.
+- Remote AI review requires explicit opt-in and HTTPS; literal and DNS-resolved non-public destinations are rejected.
 - Scanner output and provider responses have bounded capture sizes.
 - Scanner timeouts and cancellation terminate child processes that inherit scanner output pipes.
 - Markdown reports escape untrusted finding text and fence AI output as inert text.
