@@ -1,36 +1,123 @@
 # CODE-REVIEW-CENTER
 
-An original desktop code-review product that brings local analysis engines and configurable AI reviewers into one workflow. It aims to turn heterogeneous diagnostics into consistent, traceable, actionable review results.
+<p align="center">
+  <strong>One review workspace. Multiple analysis engines. Findings you can act on.</strong>
+  <br />
+  An independent desktop code-review center designed to bring local scanners and configurable AI reviewers into one clear, traceable workflow.
+</p>
 
-## Project principles
+<p align="center">
+  <a href="https://github.com/steno73mu/CODE-REVIEW-CENTER/actions/workflows/python-tests.yml"><img src="https://github.com/steno73mu/CODE-REVIEW-CENTER/actions/workflows/python-tests.yml/badge.svg?branch=feature%2Ffinding-normalization-core" alt="Python tests" /></a>
+  <img src="https://img.shields.io/badge/status-early%20development-orange" alt="Early development" />
+  <img src="https://img.shields.io/badge/Python-3.11%2B-blue" alt="Python 3.11+" />
+  <img src="https://img.shields.io/badge/runtime%20dependencies-none-brightgreen" alt="No runtime dependencies" />
+</p>
 
-- **Our product, our architecture.** External projects are research references or optional tools, not the foundation or identity of this application.
-- **Integrate before reimplementing.** Prefer invoking mature scanners through stable process boundaries and documented output formats.
-- **Own the intelligence layer.** Finding normalization, correlation, deduplication, orchestration, provider management, review history, and user experience belong to this project.
-- **Replaceable components.** No external scanner, model provider, or review engine should become an irreplaceable architectural dependency.
-- **License-aware development.** Before redistributing source or binaries, record licenses, notices, dependency obligations, provenance, and compatibility.
+---
 
-## Current implementation
+## Why this project?
 
-The first original core package is under active development:
+Modern code review can involve several disconnected tools: static analysis, secret detection, dependency checks, and AI-assisted review. Their outputs differ, overlap, and are difficult to compare consistently.
 
-- Finding: tool-independent finding model with stable SHA-256 fingerprint.
-- parse_sarif: SARIF 2.1.0 normalization into the project model.
-- parse_semgrep: native Semgrep JSON normalization.
-- parse_gitleaks: native Gitleaks JSON normalization; detected secret values and matched source text are deliberately discarded.
-- deduplicate_findings: deterministic exact-fingerprint deduplication.
-- Python 3.11+, standard-library runtime; no runtime dependencies.
+**CODE-REVIEW-CENTER is being built to bring that work together.**
 
-## Development
+The goal is not another wrapper around a single scanner. It is an independent product that owns the review workflow, the common finding model, correlation, history, provider configuration, and the experience developers use to investigate and resolve issues.
 
-Run the unit tests from the repository root:
+## What makes it different
+
+- **Engine-independent:** connect replaceable analysis tools through explicit adapters.
+- **One consistent language:** normalize heterogeneous diagnostics into a common finding model.
+- **Traceable evidence:** retain source identity, rule information, locations, and diagnostic context.
+- **Security-conscious by design:** secret values detected by Gitleaks are discarded rather than copied into normalized findings.
+- **AI reviewers as collaborators:** the planned provider layer will make AI review configurable rather than tied to one vendor.
+- **Our architecture, our product:** open-source projects are studied for focused integration opportunities; the product's core and direction remain original.
+
+## How the pieces fit together
+
+```mermaid
+flowchart LR
+    A[Source repository] --> B[Review orchestration]
+    B --> C[Local analysis engines]
+    B --> D[Configurable AI reviewers]
+    C --> E[Engine adapters]
+    D --> F[Provider adapters]
+    E --> G[Normalized findings]
+    F --> G
+    G --> H[Correlation and deduplication]
+    H --> I[Review history and reports]
+    I --> J[Desktop experience]
+```
+
+*Conceptual target architecture. Components beyond the current core are planned, not yet implemented.*
+
+## Current status
+
+<details open>
+<summary><strong>Implemented in the current core</strong></summary>
+
+- Immutable, tool-independent finding model.
+- Stable SHA-256 finding fingerprints.
+- SARIF 2.1.0 parser.
+- Native Semgrep JSON adapter.
+- Native Gitleaks JSON adapter, excluding secret values and matched source text.
+- Deterministic exact-fingerprint deduplication.
+- Automated Python unit tests and GitHub Actions workflow.
+
+</details>
+
+<details>
+<summary><strong>Under development / planned</strong></summary>
+
+- Safe external-engine execution and scan orchestration.
+- Project and review-history persistence.
+- Explainable cross-engine finding correlation.
+- Configurable AI-provider management and review orchestration.
+- Desktop interface, triage workflow, and actionable reports.
+
+</details>
+
+This repository is in **early development**. It is not yet a complete desktop application and is not recommended for production use.
+
+## Quick start
+
+Requirements: Python 3.11 or newer.
 
 ```bash
+git clone https://github.com/steno73mu/CODE-REVIEW-CENTER.git
+cd CODE-REVIEW-CENTER
+
 PYTHONPATH=src python -m unittest discover -s tests -v
 ```
 
-The same compile and unit-test checks run in GitHub Actions on feature branches and pull requests.
+The current core uses the Python standard library at runtime. The same compile and unit-test checks are configured in GitHub Actions.
 
-## Architecture
+## Project principles
 
-See [the architecture overview](docs/architecture/overview.md) for module boundaries, integration rules, and the current implementation sequence.
+| Principle | What it means |
+|---|---|
+| Own the intelligence layer | Normalization, correlation, orchestration, history, and UX belong to this project. |
+| Integrate before reimplementing | Prefer mature tools through documented CLI, JSON, or SARIF interfaces. |
+| Keep components replaceable | No scanner or model provider should become an irreplaceable dependency. |
+| Preserve evidence | Findings must remain explainable and traceable to their source. |
+| Protect sensitive data | Avoid retaining secrets or unnecessary copies of sensitive source content. |
+| Review before reuse | Check licenses, notices, transitive dependencies, security, and platform compatibility before adopting components. |
+
+## Get involved
+
+Ideas, architecture feedback, bug reports, and focused contributions are welcome.
+
+- Open an [issue](https://github.com/steno73mu/CODE-REVIEW-CENTER/issues) to discuss a problem or proposal.
+- Review the [open pull requests](https://github.com/steno73mu/CODE-REVIEW-CENTER/pulls) to see work in progress.
+- Read the [architecture overview](docs/architecture/overview.md) before proposing changes to the core.
+
+We especially value contributions that improve correctness, explainability, security, portability, and developer experience.
+
+## Architecture and development notes
+
+See [docs/architecture/overview.md](docs/architecture/overview.md) for module boundaries, integration rules, and the implementation sequence.
+
+---
+
+<p align="center">
+  <strong>Built independently. Designed to make code review clearer, safer, and more actionable.</strong>
+</p>
