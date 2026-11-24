@@ -41,7 +41,7 @@ The initial Python package lives in src/review_core/.
 - parse_sarif accepts a decoded SARIF mapping or JSON text/bytes and supports SARIF 2.1.0.
 - parse_semgrep accepts Semgrep JSON output and maps rule, message, severity, version, and source coordinates.
 - parse_gitleaks accepts Gitleaks JSON output but deliberately discards Secret and Match fields to avoid persisting credential material.
-- deduplicate_findings removes exact fingerprint repeats while preserving first-seen order. It deliberately does not perform cross-engine correlation or severity arbitration.
+- deduplicate_findings removes exact fingerprint repeats while preserving first-seen order.\n- correlate_findings groups only cross-tool findings at the same normalized file path and line with a configurable high message-similarity threshold. Every group retains pairwise fingerprints, method, and score; original severities and finding records are not merged.
 
 The core currently uses Python 3.11+ and the standard library only.
 
@@ -52,7 +52,7 @@ The core currently uses Python 3.11+ and the standard library only.
 1. Establish and test the domain model and SARIF normalization. **Implemented first slice.**
 2. Add native JSON adapters for scanner formats not adequately represented by SARIF. **Semgrep and Gitleaks implemented.**
 3. Define scan/project persistence and engine execution contracts. **Implemented: SQLite history, project registry, scanner profiles.**
-4. Add cross-engine correlation with explainable matching evidence. **Pending.**
+4. Add cross-engine correlation with explainable matching evidence. **Conservative first implementation complete; thresholds and precision require broader fixture validation.**
 5. Add provider configuration and AI review orchestration. **Pending.**
 6. Build the desktop workflow and reporting experience. **First local desktop slice implemented; advanced triage/reporting pending.**
 
