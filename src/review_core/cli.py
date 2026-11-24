@@ -8,10 +8,12 @@ from pathlib import Path
 import sys
 import uuid
 
-from .configuration import ScannerConfigStore, ScannerProfile
+from .configuration import ProviderConfigStore, ProviderProfile, ScannerConfigStore, ScannerProfile
+from .providers import AIReviewClient
 from .application import scan_project
 from .projects import ProjectRegistry
 from .storage import ScanStore
+from .finding import Finding
 
 
 def data_directory() -> Path:
@@ -54,6 +56,24 @@ def _parser() -> argparse.ArgumentParser:
     remove_scanner = scanner_sub.add_parser("remove")
     remove_scanner.add_argument("scanner_id")
 
+    provider = sub.add_parser("provider", help="manage OpenAI-compatible AI reviewers")
+    provider_sub = provider.add_subparsers(dest="action", required=True)
+    add_provider = provider_sub.add_parser("add")
+    add_provider.add_argument("--id", required=True)
+    add_provider.add_argument("--name", required=True)
+    add_provider.add_argument("--url", required=True)
+    add_provider.add_argument("--model", required=True)
+    add_provider.add_argument("--api-key-env")
+    add_provider.add_argument("--timeout", type=float, default=60.0)
+    provider_sub.add_parser("list")
+    remove_provider = provider_sub.add_parser("remove")
+    remove_provider.add_argument("provider_id")
+
+    review = sub.add_parser("review", help="ask a configured AI provider to review saved findings")
+    review.add_argument("--session", required=True)
+    review.add_argument("--provider", required=True)
+    review.add_argument("--allow-external", action="store_true")
+
     scan = sub.add_parser("scan", help="run all enabled scanners for a registered project")
     scan.add_argument("--project", required=True)
     scan.add_argument("--max-workers", type=int, default=4)
@@ -78,6 +98,7 @@ def main(argv: list[str] | None = None) -> int:
     database = directory / "review.sqlite3"
     projects = ProjectRegistry(database)
     scanners = ScannerConfigStore(database)
+    providers = ProviderConfigStore(database)
     history = ScanStore(database)
 
     try:
@@ -114,6 +135,41 @@ def main(argv: list[str] | None = None) -> int:
                 if not scanners.remove(args.scanner_id):
                     raise ValueError(f"unknown scanner: {args.scanner_id}")
                 _json({"removed": args.scanner_id})
+
+        elif args.resource == "provider":
+            if args.action == "add":
+                profile = ProviderProfile(
+                    provider_id=args.id, name=args.name, base_url=args.url,
+                    model=args.model, api_key_env=args.api_key_env,
+                    timeout_seconds=args.timeout,
+                )
+                providers.save(profile)
+                _json(asdict(profile))
+            elif args.action == "list":
+                _json([asdict(item) for item in providers.list_profiles()])
+            else:
+                if not providers.remove(args.provider_id):
+                    raise ValueError(f"unknown provider: {args.provider_id}")
+                _json({"removed": args.provider_id})
+
+        elif args.resource == "review":
+            provider = providers.get(args.provider)
+            if provider is None:
+                raise ValueError(f"unknown provider: {args.provider}")
+            session = history.get_batch(args.session)
+            if session is None:
+                raise ValueError(f"unknown scan session: {args.session}")
+            findings = [Finding(**item) for item in session["findings"]]
+            result = AIReviewClient().review_findings(
+                provider, findings, allow_external=args.allow_external
+            )
+            _json({
+                "provider_id": result.provider_id,
+                "model": result.model,
+                "session_id": args.session,
+                "finding_count": len(findings),
+                "review": result.content,
+            })
 
         elif args.resource == "scan":
             project = projects.get(args.project)
