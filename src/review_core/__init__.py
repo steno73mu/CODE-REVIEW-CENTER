@@ -6,13 +6,18 @@ from .engine import EngineExecutionError, EngineResult, EngineTimeoutError, run_
 from .finding import Finding, FindingSeverity
 from .sarif import parse_sarif
 from .scanning import ScanExecutionError, ScanResult, run_scanner
+from .orchestration import ScanBatchResult, ScanJob, ScanJobResult, ScanStatus, run_scan_batch
 
 __all__ = [
     "EngineExecutionError",
     "EngineResult",
     "EngineTimeoutError",
     "Finding",
+    "ScanBatchResult",
     "ScanExecutionError",
+    "ScanJob",
+    "ScanJobResult",
+    "ScanStatus",
     "ScanResult",
     "FindingSeverity",
     "deduplicate_findings",
@@ -21,4 +26,5 @@ __all__ = [
     "parse_semgrep",
     "run_engine",
     "run_scanner",
+    "run_scan_batch",
 ]
