@@ -100,6 +100,14 @@ class ScanStoreTests(unittest.TestCase):
         self.assertEqual(loaded[0]["review_id"], review_id)
         self.assertEqual(loaded[0]["content"], "Review summary")
 
+    def test_persists_nonzero_exit_code_for_failed_scanner(self):
+        import sys
+        from review_core.orchestration import ScanJob, run_scan_batch
+        batch = run_scan_batch([
+            ScanJob("broken", [sys.executable, "-c", "import sys; print('report'); sys.exit(7)"], parse_semgrep)
+        ])
+        self.store.save_batch("scan-failed", batch)
+        self.assertEqual(self.store.get_batch("scan-failed")["jobs"][0]["returncode"], 7)
 
 if __name__ == "__main__":
     unittest.main()
