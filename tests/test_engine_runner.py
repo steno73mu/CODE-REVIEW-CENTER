@@ -1,7 +1,10 @@
 import sys
+import threading
+import time
 import unittest
 
 from review_core.engine import (
+    EngineCancelledError,
     EngineExecutionError,
     EngineTimeoutError,
     run_engine,
@@ -53,6 +56,38 @@ class EngineRunnerTests(unittest.TestCase):
     def test_rejects_non_positive_timeout(self):
         with self.assertRaises(EngineExecutionError):
             run_engine([sys.executable, "--version"], timeout_seconds=0)
+
+    def test_bounds_captured_output_and_marks_truncation(self):
+        result = run_engine(
+            [sys.executable, "-c", "print('x' * 10000)"],
+            max_output_bytes=128,
+        )
+
+        self.assertLessEqual(len(result.stdout.encode("utf-8")), 128)
+        self.assertTrue(result.stdout_truncated)
+        self.assertFalse(result.stderr_truncated)
+
+    def test_cancellation_terminates_running_process(self):
+        cancellation = threading.Event()
+
+        def cancel_soon():
+            time.sleep(0.1)
+            cancellation.set()
+
+        thread = threading.Thread(target=cancel_soon)
+        thread.start()
+        try:
+            with self.assertRaises(EngineCancelledError):
+                run_engine(
+                    [sys.executable, "-c", "import time; time.sleep(5)"],
+                    cancel_event=cancellation,
+                )
+        finally:
+            thread.join(timeout=1)
+
+    def test_rejects_invalid_output_limit(self):
+        with self.assertRaises(EngineExecutionError):
+            run_engine([sys.executable, "--version"], max_output_bytes=0)
 
 
 if __name__ == "__main__":
