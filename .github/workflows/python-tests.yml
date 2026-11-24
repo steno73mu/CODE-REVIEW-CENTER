@@ -40,7 +40,7 @@ jobs:
         run: crc --help
       - name: Verify desktop module imports without opening a display
         run: python -c "import review_core.desktop"
-      - name: Verify desktop launcher is installed
-        run: python -c "import importlib.metadata as m; assert any(e.name == 'crc-desktop' for e in m.entry_points(group='console_scripts'))"
+      - name: Verify desktop GUI launcher is installed
+        run: python -c "import importlib.metadata as m; assert any(e.name == 'crc-desktop' and e.value == 'review_core.desktop:main' for e in m.entry_points(group='gui_scripts'))"
       - name: Run unit tests
         run: python -m unittest discover -s tests -v
