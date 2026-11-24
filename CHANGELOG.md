@@ -16,7 +16,7 @@ All notable changes to CODE-REVIEW-CENTER are documented here.
 - `crc-desktop` Tkinter workspace for local project management, scanner profiles, background scans, findings, history, and AI review.
 - JSON, SARIF 2.1.0, and Markdown report export, including correlation evidence and saved AI reviews.
 - Offline environment doctor and built-in Semgrep and redacted Gitleaks scanner presets.
-- GitHub Actions checks for package installation, CLI entry point, desktop module import, and unit tests across Linux and Windows on Python 3.11-3.13.
+- GitHub Actions builds wheel and source distributions, installs both artifacts, and checks CLI/desktop entry points plus unit tests across Linux and Windows on Python 3.11-3.13.
 
 ### Security
 - Gitleaks secret values and matched source text are excluded from normalized findings.
