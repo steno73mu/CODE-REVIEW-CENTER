@@ -144,6 +144,10 @@ AI provider profiles use the OpenAI-compatible Chat Completions API. API keys ar
 
 Finding dispositions are stored per scan session: `open`, `accepted`, `false_positive`, `fixed`, or `wont_fix`. Use `crc triage list --session SESSION_ID` to inspect them and `crc triage set --session SESSION_ID --fingerprint SHA256 --status fixed --note "Verified in patch"` to update one. Triage state is included in JSON/SARIF/Markdown exports.
 
+## Release readiness
+
+The MVP-to-release checklist, including licensing and manual desktop validation, is in [docs/release-readiness.md](docs/release-readiness.md).
+
 ## Project principles
 
 **Licensing note:** no repository license has been selected yet. Until a license is added, public visibility does not grant permission to reuse or redistribute this project's code.
