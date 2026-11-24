@@ -6,7 +6,8 @@ The current branch is a functional MVP, not a production release. Complete this 
 
 - [ ] Select a repository license with the project owner. No license is currently granted by this repository.
 - [x] Record current upstream scanner license files and confirm that scanner source/binaries are not vendored; see [third-party integration notes](third-party-integrations.md).
-- [ ] Complete a version-specific license/notice audit for the exact scanner releases used in cross-platform integration tests and for any future dependencies.
+- [x] Inspect the exact upstream license files at Semgrep v1.187.0 (LGPL-2.1) and Gitleaks v8.30.1 (MIT); no scanner binaries or third-party Python runtime dependencies are bundled.
+- [ ] Complete a notice audit for scanner distributions if a release package ever redistributes them, and audit any future runtime dependencies.
 - [x] Record the tested Semgrep and Gitleaks versions, installation instructions, and upstream license terms. Scanner binaries are external tools and are not bundled; see [third-party integration notes](third-party-integrations.md).
 - [x] Validate the synthetic Semgrep `--config auto` path on Ubuntu and Windows; the representative-repository check remains open.
 - [x] Validate Semgrep `--config auto` against a synthetic Python fixture on GitHub-hosted Ubuntu and Windows; [workflow run 45503977330](https://github.com/steno73mu/CODE-REVIEW-CENTER/actions/runs/45503977330). The check enables Semgrep run metrics because auto-config creation requires them.
