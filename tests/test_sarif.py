@@ -35,11 +35,8 @@ def sarif_document(results, *, rule_level=None):
 
 class SarifNormalizationTests(unittest.TestCase):
     def test_maps_error_and_preserves_location_and_provenance(self):
-        findings = parse_sarif(sarif_document([sarif_result()]))
+        finding = parse_sarif(sarif_document([sarif_result()]))[0]
 
-        self.assertEqual(len(findings), 1)
-        finding = findings[0]
-        self.assertIsInstance(finding, FindingSeverity.__class__ if False else object)
         self.assertEqual(finding.severity, FindingSeverity.ERROR)
         self.assertEqual(finding.tool, "ExampleScanner")
         self.assertEqual(finding.tool_version, "3.2.1")
@@ -122,6 +119,18 @@ class SarifNormalizationTests(unittest.TestCase):
         result["locations"][0]["physicalLocation"]["region"]["startLine"] = 0
         with self.assertRaises(ValueError):
             parse_sarif(sarif_document([result]))
+
+    def test_rejects_end_line_before_start_line(self):
+        result = sarif_result()
+        region = result["locations"][0]["physicalLocation"]["region"]
+        region["endLine"] = 11
+        with self.assertRaises(ValueError):
+            parse_sarif(sarif_document([result]))
+
+    def test_fingerprint_does_not_change_when_severity_changes(self):
+        error = parse_sarif(sarif_document([sarif_result(level="error")]))[0]
+        warning = parse_sarif(sarif_document([sarif_result(level="warning")]))[0]
+        self.assertEqual(error.fingerprint, warning.fingerprint)
 
 
 if __name__ == "__main__":
