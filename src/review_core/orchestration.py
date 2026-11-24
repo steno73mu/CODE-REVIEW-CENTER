@@ -8,7 +8,7 @@ import threading
 import time
 
 from .deduplication import deduplicate_findings
-from .engine import EngineExecutionError, EngineTimeoutError
+from .engine import EngineCancelledError, EngineExecutionError, EngineTimeoutError
 from .finding import Finding
 from .scanning import ScanResult, run_scanner
 
@@ -31,6 +31,7 @@ class ScanJob:
     timeout_seconds: float = 300.0
     cwd: str | None = None
     env: dict[str, str] | None = None
+    max_output_bytes: int = 1_048_576
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,12 +61,16 @@ def _execute_job(job: ScanJob, cancel_event: threading.Event) -> ScanJobResult:
             timeout_seconds=job.timeout_seconds,
             cwd=job.cwd,
             env=job.env,
+            max_output_bytes=job.max_output_bytes,
+            cancel_event=cancel_event,
         )
         return ScanJobResult(
             job_id=job.job_id,
             status=ScanStatus.SUCCEEDED,
             scan_result=result,
         )
+    except EngineCancelledError:
+        return ScanJobResult(job_id=job.job_id, status=ScanStatus.CANCELLED, error="scanner was cancelled")
     except EngineTimeoutError:
         return ScanJobResult(
             job_id=job.job_id,
