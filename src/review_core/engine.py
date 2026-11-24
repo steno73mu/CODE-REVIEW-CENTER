@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import threading
 import time
+from pathlib import Path
 from typing import TypeAlias
 
 
@@ -94,7 +95,11 @@ class _BoundedPipeReader(threading.Thread):
         return self.data.decode("utf-8", errors="replace")
 
 
-def _resolve_executable(executable: str, env: Mapping[str, str] | None) -> str:
+def _resolve_executable(
+    executable: str,
+    env: Mapping[str, str] | None,
+    cwd: str | os.PathLike[str] | None,
+) -> str:
     has_path_component = (
         os.path.isabs(executable)
         or os.sep in executable
@@ -105,7 +110,41 @@ def _resolve_executable(executable: str, env: Mapping[str, str] | None) -> str:
             resolved = os.path.abspath(os.path.expanduser(executable))
             if not os.path.isfile(resolved):
                 raise EngineExecutionError("configured analysis engine executable is not a file")
-            return resolved
+        except (OSError, ValueError) as exc:
+            raise EngineExecutionError("could not resolve configured analysis engine executable") from exc
+    else:
+        search_path = (
+            env["PATH"]
+            if env is not None and "PATH" in env
+            else os.environ.get("PATH", os.defpath)
+        )
+        trusted_path = os.pathsep.join(
+            entry for entry in search_path.split(os.pathsep)
+            if entry and os.path.isabs(entry)
+        )
+        if not trusted_path:
+            raise EngineExecutionError(
+                "analysis engine PATH must contain at least one absolute directory"
+            )
+        resolved = shutil.which(executable, path=trusted_path)
+        if resolved is None:
+            raise EngineExecutionError("analysis engine executable was not found on PATH")
+        resolved = os.path.abspath(resolved)
+
+    if cwd is not None:
+        try:
+            project_root = Path(cwd).expanduser().resolve()
+            executable_path = Path(resolved).resolve()
+            executable_path.relative_to(project_root)
+        except ValueError:
+            pass
+        except (OSError, RuntimeError, TypeError) as exc:
+            raise EngineExecutionError("could not verify analysis engine location") from exc
+        else:
+            raise EngineExecutionError(
+                "analysis engine executable must be outside the project directory"
+            )
+    return resolved
         except (OSError, ValueError) as exc:
             raise EngineExecutionError("could not resolve configured analysis engine executable") from exc
 
@@ -217,7 +256,7 @@ def run_engine(
         if any("\x00" in key or "\x00" in value or "=" in key for key, value in env.items()):
             raise EngineExecutionError("env contains an invalid variable name or value")
 
-    resolved_executable = _resolve_executable(normalized_command[0], env)
+    resolved_executable = _resolve_executable(normalized_command[0], env, cwd)
     process_command = (resolved_executable, *normalized_command[1:])
 
     started_at = time.perf_counter()
