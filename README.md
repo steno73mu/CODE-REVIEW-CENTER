@@ -79,11 +79,11 @@ flowchart LR
 - Advanced triage actions, code-context navigation, rich evidence comparison, and report export.
 - Explainable cross-engine finding correlation.
 - Configurable AI-provider management and review orchestration.
-- Desktop interface, interactive triage workflow, and actionable reports.
+- Advanced triage actions, code-context navigation, rich evidence comparison, report export, and AI-assisted review.
 
 </details>
 
-This repository is in **early development**. The local CLI and Python core are usable for controlled experiments; the desktop application is not yet implemented and the project is not recommended for production use.
+This repository is in **early development**. The local CLI and first desktop workspace are usable for controlled experiments. Advanced triage, AI review, report export, and full platform validation remain in development; the project is not recommended for production use.
 
 ## Quick start
 
@@ -92,8 +92,8 @@ Requirements: Python 3.11 or newer.
 ```bash
 git clone https://github.com/steno73mu/CODE-REVIEW-CENTER.git
 cd CODE-REVIEW-CENTER
-
-PYTHONPATH=src python -m unittest discover -s tests -v
+python -m pip install .
+python -m unittest discover -s tests -v
 ```
 
 The current core uses the Python standard library at runtime. Install the CLI and desktop launcher with `python -m pip install .`. The same compile, CLI smoke-test, desktop-module import, and unit-test checks are configured in GitHub Actions.
@@ -121,6 +121,8 @@ crc history list
 Scanner profiles accept argument arrays, not shell command strings. The only supported substitution is the standalone `{project_path}` argument. Configure only trusted, locally installed scanner binaries; never place credentials in command arguments. Output capture is bounded per stream (1 MiB by default), and scan history stores normalized findings and execution metadata, not raw stdout/stderr.
 
 ## Project principles
+
+**Licensing note:** no repository license has been selected yet. Until a license is added, public visibility does not grant permission to reuse or redistribute this project's code.
 
 | Principle | What it means |
 |---|---|
