@@ -37,7 +37,7 @@ class CommandLineTests(unittest.TestCase):
         command = [
             "python",
             "-c",
-            "print('{\"results\": []}')",
+            "print('{\"results\": [{\"check_id\": \"rule.test\", \"path\": \"app.py\", \"start\": {\"line\": 4, \"col\": 1}, \"extra\": {\"message\": \"Unsafe call\", \"severity\": \"ERROR\"}}]}')",
             "{project_path}",
         ]
         code, output = self.invoke([
@@ -54,6 +54,15 @@ class CommandLineTests(unittest.TestCase):
         code, output = self.invoke(["history", "show", session_id])
         self.assertEqual(code, 0, output)
         self.assertEqual(json.loads(output)["status"], "completed")
+        fingerprint = json.loads(output)["findings"][0]["fingerprint"]
+        code, output = self.invoke([
+            "triage", "set", "--session", session_id, "--fingerprint", fingerprint,
+            "--status", "false_positive", "--note", "Reviewed fixture",
+        ])
+        self.assertEqual(code, 0, output)
+        code, output = self.invoke(["triage", "list", "--session", session_id])
+        self.assertEqual(code, 0, output)
+        self.assertEqual(json.loads(output)[0]["status"], "false_positive")
 
         report_path = self.home / "scan-report.sarif"
         code, output = self.invoke([
