@@ -11,6 +11,7 @@ The current branch is a functional MVP, not a production release. Complete this 
 - [ ] Validate the built-in Semgrep preset against a real local repository and confirm exit-code behavior.
 - [x] Validate the Gitleaks adapter and a supported cross-platform invocation on Linux and Windows; CI confirms redacted output on both platforms.
 - [x] Prevent scanner executable shadowing: relative PATH entries and executable paths inside the scanned project are rejected.
+- [x] Smoke-test Tk workspace initialization on GitHub-hosted Linux (Xvfb) and Windows runners.
 - [ ] Run the Tkinter desktop application interactively on real Pop!_OS and Windows desktops, including scan cancellation, triage, AI review, and report export.
 - [ ] Test local providers (Ollama and/or LM Studio) and at least one remote OpenAI-compatible provider with explicit consent and a non-production test key.
 - [ ] Review data retention, local database backup/restore, permissions, and user-facing disclosure for AI review metadata.
