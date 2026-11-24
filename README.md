@@ -150,7 +150,7 @@ Supported report formats are JSON, SARIF 2.1.0, and Markdown. Existing output fi
 - The scanner launcher is **not a sandbox**. Configure only trusted local executables. Timeouts and cancellation terminate the scanner process tree (POSIX process groups; Windows `taskkill /T`).
 - Output capture is 1 MiB per stream by default (hard maximum 64 MiB); raw stdout/stderr are not persisted.
 - Gitleaks preset requests 100% redaction, and the adapter excludes secret and matched-text fields from normalized findings.
-- Remote AI review requires explicit opt-in, HTTPS, and bounded request/response sizes. API keys stay in environment variables.
+- Remote AI review requires explicit opt-in, HTTPS, public destination addresses, and bounded request/response sizes. API keys stay in environment variables. This is not a substitute for network egress controls.
 - Application data is stored in a private per-user directory (POSIX mode 0700).
 - Public pull-request CI runs on GitHub-hosted Linux/Windows runners; the self-hosted Pop!_OS runner is not used for untrusted PR code.
 
