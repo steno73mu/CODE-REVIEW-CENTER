@@ -46,7 +46,7 @@ def main() -> int:
                 f"stderr={semgrep.process_result.stderr[:2000]!r}"
             )
 
-        test_access_key = "AKIAIOSFODNN7EXAMPLE"
+        test_access_key = "ghp_0123456789abcdef0123456789abcdef0123"
         (project / "credentials.txt").write_text(
             f"AWS_ACCESS_KEY_ID={test_access_key}\n",
             encoding="utf-8",
@@ -68,7 +68,12 @@ def main() -> int:
             cwd=str(project),
         )
         if not gitleaks.findings:
-            raise RuntimeError("Gitleaks did not report the expected fake access-key fixture")
+            raise RuntimeError(
+                "Gitleaks did not report the expected fake token fixture; "
+                f"exit={gitleaks.process_result.returncode}; "
+                f"stdout={gitleaks.process_result.stdout[:2000]!r}; "
+                f"stderr={gitleaks.process_result.stderr[:2000]!r}"
+            )
         if test_access_key in gitleaks.process_result.stdout:
             raise RuntimeError("Gitleaks emitted an unredacted test secret to stdout")
         if any(test_access_key in item.message for item in gitleaks.findings):
