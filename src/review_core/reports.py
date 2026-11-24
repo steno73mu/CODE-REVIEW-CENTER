@@ -5,6 +5,7 @@ import html
 import json
 import os
 from pathlib import Path
+import re
 import tempfile
 from typing import Any
 
@@ -75,7 +76,11 @@ def _sarif(record: dict[str, Any]) -> dict[str, Any]:
 
 def _markdown(record: dict[str, Any]) -> str:
     def cell(value: object) -> str:
-        return html.escape(str(value if value is not None else "")).replace("|", "&#124;").replace("\n", " ")
+        escaped = html.escape(str(value if value is not None else ""))
+        escaped = escaped.replace("\\", "\\\\")
+        for character in ("`", "*", "_", "{", "}", "[", "]", "(", ")", "!", "~"):
+            escaped = escaped.replace(character, "\\" + character)
+        return escaped.replace("|", "&#124;").replace("\n", " ")
 
     findings = record.get("findings", [])
     jobs = record.get("jobs", [])
@@ -128,7 +133,20 @@ def _markdown(record: dict[str, Any]) -> str:
     reviews = record.get("ai_reviews", [])
     if reviews:
         for review in reviews:
-            lines.extend([f"### {cell(review.get('provider_id'))} · {cell(review.get('model'))}", "", cell(review.get("content")), ""])
+            review_content = str(review.get("content") or "")
+            longest_backtick_run = max(
+                (len(match.group(0)) for match in re.finditer(r"`+", review_content)),
+                default=0,
+            )
+            fence = "`" * max(3, longest_backtick_run + 1)
+            lines.extend([
+                f"### {cell(review.get('provider_id'))} · {cell(review.get('model'))}",
+                "",
+                f"{fence}text",
+                review_content,
+                fence,
+                "",
+            ])
     else:
         lines.append("No AI review has been saved for this session.")
     return "\n".join(lines).rstrip() + "\n"
