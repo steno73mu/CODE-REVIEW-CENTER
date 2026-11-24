@@ -37,7 +37,6 @@ def main() -> int:
     scanner_rows = []
     cancellation = threading.Event()
     events: queue.Queue = queue.Queue()
-    active_session: str | None = None
 
     outer = ttk.Frame(root, padding=12)
     outer.pack(fill="both", expand=True)
@@ -223,7 +222,6 @@ def main() -> int:
             )
 
     def start_scan():
-        nonlocal active_session
         project = selected_project()
         if project is None:
             messagebox.showinfo("Scan", "Select a project first.")
