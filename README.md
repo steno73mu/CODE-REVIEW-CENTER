@@ -16,6 +16,8 @@ The first original core package is under active development:
 
 - Finding: tool-independent finding model with stable SHA-256 fingerprint.
 - parse_sarif: SARIF 2.1.0 normalization into the project model.
+- parse_semgrep: native Semgrep JSON normalization.
+- parse_gitleaks: native Gitleaks JSON normalization; detected secret values and matched source text are deliberately discarded.
 - deduplicate_findings: deterministic exact-fingerprint deduplication.
 - Python 3.11+, standard-library runtime; no runtime dependencies.
 
