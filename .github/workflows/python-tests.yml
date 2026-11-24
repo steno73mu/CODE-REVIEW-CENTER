@@ -30,6 +30,10 @@ jobs:
         run: python -m compileall -q src tests
       - name: Build wheel and source distribution
         run: python -m pip install "setuptools>=68" build && python -m build --sdist --wheel --outdir dist
+      - name: Install built wheel
+        run: python -c "from pathlib import Path; import subprocess, sys; artifact = next(Path('dist').glob('*.whl')); subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--no-deps', '--force-reinstall', str(artifact)])"
+      - name: Verify wheel-installed CLI
+        run: crc --help
       - name: Install built source distribution
         run: python -c "from pathlib import Path; import subprocess, sys; artifact = next(Path('dist').glob('*.tar.gz')); subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--no-deps', '--no-build-isolation', '--force-reinstall', str(artifact)])"
       - name: Verify installed CLI entry point
