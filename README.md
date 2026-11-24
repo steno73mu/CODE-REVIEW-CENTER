@@ -61,6 +61,7 @@ flowchart LR
 - Native Semgrep JSON adapter.
 - Native Gitleaks JSON adapter, excluding secret values and matched source text.
 - Deterministic exact-fingerprint deduplication.
+- Trusted external-engine process runner using argument arrays (no shell), execution timeouts, and captured diagnostics.
 - Automated Python unit tests and GitHub Actions workflow.
 
 </details>
@@ -68,7 +69,7 @@ flowchart LR
 <details>
 <summary><strong>Under development / planned</strong></summary>
 
-- Safe external-engine execution and scan orchestration.
+- Scan orchestration, including lifecycle, concurrency, cancellation, and output-size policies.
 - Project and review-history persistence.
 - Explainable cross-engine finding correlation.
 - Configurable AI-provider management and review orchestration.
