@@ -3,7 +3,7 @@
 <p align="center">
   <strong>One review workspace. Multiple analysis engines. Findings you can act on.</strong>
   <br />
-  A local-first code review center for trusted scanners, explainable findings, triage, and configurable AI review.
+  A local-first code review center for local folders and GitHub repositories, trusted scanners, explainable findings, triage, and configurable AI review.
 </p>
 
 <p align="center">
@@ -17,7 +17,7 @@
 
 ## What it does
 
-CODE-REVIEW-CENTER brings multiple local analysis tools into one traceable review workflow. It normalizes scanner output, deduplicates exact repeats, conservatively correlates cross-engine findings, stores scan history, supports reviewer triage, and can request an AI assessment of finding metadata.
+CODE-REVIEW-CENTER brings multiple analysis tools into one traceable review workflow. It normalizes scanner output, deduplicates exact repeats, conservatively correlates cross-engine findings, stores scan history, supports reviewer triage, and can request an AI assessment of finding metadata.
 
 This is an original product, not a repackaged scanner or a fork of another review application. External engines remain replaceable tools behind documented command-line, JSON, and SARIF interfaces.
 
@@ -31,7 +31,7 @@ This is an original product, not a repackaged scanner or a fork of another revie
 - **Finding triage:** open, accepted, false positive, fixed, or won't-fix, with reviewer notes.
 - **AI review:** OpenAI-compatible Chat Completions providers, local endpoints, environment-variable API key references, explicit remote-provider opt-in.
 - **Reports:** JSON, SARIF 2.1.0, and Markdown exports.
-- **Interfaces:** `crc` CLI and `crc-desktop` Tkinter desktop workspace.
+- **Interfaces:** `crc` CLI and `crc-desktop` Tkinter desktop workspace.\n- **GitHub repositories:** clone and update HTTPS GitHub repositories locally, then analyze them with the same scanner workflow.
 - **Built-in presets:** Semgrep and Gitleaks.
 - **Diagnostics:** `crc doctor` checks the local runtime and configured scanner executables without network access.
 
