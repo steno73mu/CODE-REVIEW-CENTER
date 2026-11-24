@@ -17,3 +17,4 @@ where = ["src"]
 
 [project.scripts]
 crc = "review_core.cli:main"
+crc-desktop = "review_core.desktop:main"
