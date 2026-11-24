@@ -22,6 +22,7 @@ def _sarif(record: dict[str, Any]) -> dict[str, Any]:
     for finding in record.get("findings", []):
         grouped[finding["tool"]].append(finding)
     runs = []
+    triage_by_fingerprint = {item["fingerprint"]: item for item in record.get("triage", [])}
     for tool, findings in grouped.items():
         rules = list(dict.fromkeys(x.get("rule_id") for x in findings if x.get("rule_id")))
         results = []
@@ -32,6 +33,11 @@ def _sarif(record: dict[str, Any]) -> dict[str, Any]:
                 "partialFingerprints": {"codeReviewCenterFingerprint": finding["fingerprint"]},
                 "properties": {"sourceTool": tool, "normalizedSeverity": finding.get("severity", "unknown")},
             }
+            triage = triage_by_fingerprint.get(finding["fingerprint"])
+            if triage:
+                item["properties"]["triageStatus"] = triage.get("status", "open")
+                if triage.get("note"):
+                    item["properties"]["triageNote"] = triage["note"]
             if finding.get("rule_id"):
                 item["ruleId"] = finding["rule_id"]
             if finding.get("help_uri"):
@@ -108,6 +114,16 @@ def _markdown(record: dict[str, Any]) -> str:
     for job in jobs:
         code = job.get("returncode") if job.get("returncode") is not None else "—"
         lines.append(f"| {cell(job.get('job_id'))} | {cell(job.get('status'))} | {cell(code)} |")
+    lines.extend(["", "## Triage", "", "| Status | Tool | Location | Note |", "|---|---|---|---|"])
+    triage_items = record.get("triage", [])
+    for item in triage_items:
+        location = item.get("path") or ""
+        if item.get("start_line") is not None:
+            location += ":" + str(item["start_line"])
+        values = (item.get("status", "open"), item.get("tool"), location, item.get("note"))
+        lines.append("| " + " | ".join(cell(value) for value in values) + " |")
+    if not triage_items:
+        lines.append("No triage updates have been recorded.")
     lines.extend(["", "## AI reviews", ""])
     reviews = record.get("ai_reviews", [])
     if reviews:
