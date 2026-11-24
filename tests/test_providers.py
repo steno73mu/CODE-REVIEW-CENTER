@@ -1,7 +1,9 @@
 import json
 import os
+import socket
 import threading
 import unittest
+from unittest.mock import patch
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from review_core.configuration import ProviderConfigStore, ProviderProfile
@@ -80,6 +82,30 @@ class ProviderIntegrationTests(unittest.TestCase):
         )
         with self.assertRaises(AIReviewError):
             AIReviewClient().review_findings(remote, [])
+
+    def test_rejects_private_ip_remote_destination_even_with_opt_in(self):
+        remote = ProviderProfile(
+            "private-ip", "Private IP", "https://192.168.1.10/v1", "model", None, 5
+        )
+        with patch("review_core.providers.build_opener") as build_opener:
+            with self.assertRaisesRegex(AIReviewError, "public network"):
+                AIReviewClient().review_findings(remote, [], allow_external=True)
+        build_opener.assert_not_called()
+
+    def test_rejects_remote_hostname_resolving_to_loopback_or_private_ip(self):
+        remote = ProviderProfile(
+            "private-host", "Private host", "https://provider.example/v1", "model", None, 5
+        )
+        records = [
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("127.0.0.1", 443)),
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("203.0.113.10", 443)),
+        ]
+        with patch("review_core.providers.socket.getaddrinfo", return_value=records), patch(
+            "review_core.providers.build_opener"
+        ) as build_opener:
+            with self.assertRaisesRegex(AIReviewError, "public network"):
+                AIReviewClient().review_findings(remote, [], allow_external=True)
+        build_opener.assert_not_called()
 
     def test_rejects_plain_http_for_non_loopback_provider(self):
         with self.assertRaises(ValueError):
