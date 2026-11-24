@@ -4,6 +4,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 import math
 import os
+import signal
 import subprocess
 import threading
 import time
@@ -92,6 +93,39 @@ class _BoundedPipeReader(threading.Thread):
         return self.data.decode("utf-8", errors="replace")
 
 
+def _terminate_process_tree(process: subprocess.Popen) -> None:
+    """Terminate the scanner and any child processes it started."""
+    if os.name == "nt":
+        try:
+            subprocess.run(
+                ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+                timeout=5,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            if process.poll() is None:
+                process.kill()
+        process.wait()
+        return
+
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        pass
+    try:
+        process.wait(timeout=0.5)
+    except subprocess.TimeoutExpired:
+        pass
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    process.wait()
+
+
 def run_engine(
     command: Command,
     *,
@@ -150,6 +184,11 @@ def run_engine(
 
     started_at = time.perf_counter()
     try:
+        process_options = (
+            {"start_new_session": True}
+            if os.name == "posix"
+            else {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+        )
         process = subprocess.Popen(
             normalized_command,
             cwd=cwd,
@@ -159,6 +198,7 @@ def run_engine(
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             bufsize=0,
+            **process_options,
         )
     except (OSError, ValueError, TypeError) as exc:
         raise EngineExecutionError(
@@ -182,12 +222,7 @@ def run_engine(
         time.sleep(0.02)
 
     if termination is not None:
-        process.terminate()
-        try:
-            process.wait(timeout=1.0)
-        except subprocess.TimeoutExpired:
-            process.kill()
-            process.wait()
+        _terminate_process_tree(process)
     else:
         process.wait()
 
