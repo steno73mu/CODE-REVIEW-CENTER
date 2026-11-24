@@ -8,7 +8,7 @@ import threading
 import time
 
 from .deduplication import deduplicate_findings
-from .engine import EngineCancelledError, EngineExecutionError, EngineTimeoutError
+from .engine import EngineCancelledError, EngineExecutionError, EngineResult, EngineTimeoutError
 from .finding import Finding
 from .correlation import CorrelatedFinding, correlate_findings
 from .scanning import ScanExecutionError, ScanResult, run_scanner
@@ -40,7 +40,7 @@ class ScanJobResult:
     job_id: str
     status: ScanStatus
     scan_result: ScanResult | None = None
-    process_result: object | None = None
+    process_result: EngineResult | None = None
     error: str | None = None
 
 
