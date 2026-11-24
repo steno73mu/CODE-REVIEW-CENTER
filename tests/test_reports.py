@@ -36,6 +36,7 @@ class ReportGenerationTests(unittest.TestCase):
                 }],
             }],
             "ai_reviews": [],
+            "triage": [{"fingerprint": "a" * 64, "tool": "Semgrep", "severity": "high", "path": "src/app.py", "start_line": 12, "status": "false_positive", "note": "Reviewed"}],
         }
 
     def test_renders_machine_readable_json(self):
@@ -50,12 +51,14 @@ class ReportGenerationTests(unittest.TestCase):
         self.assertEqual(result["level"], "error")
         self.assertEqual(result["partialFingerprints"]["codeReviewCenterFingerprint"], "a" * 64)
         self.assertEqual(result["locations"][0]["physicalLocation"]["region"]["startLine"], 12)
+        self.assertEqual(result["properties"]["triageStatus"], "false_positive")
 
     def test_renders_markdown_with_findings_and_correlation_evidence(self):
         rendered = render_report(self._record(), "markdown")
         self.assertIn("Unsafe deserialization", rendered)
         self.assertIn("98%", rendered)
         self.assertIn("src/app.py:12", rendered)
+        self.assertIn("false_positive", rendered)
 
     def test_rejects_unknown_report_format(self):
         with self.assertRaises(ValueError):
