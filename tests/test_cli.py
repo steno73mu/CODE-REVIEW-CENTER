@@ -40,7 +40,7 @@ class CommandLineTests(unittest.TestCase):
             "print('{\"results\": []}')",
             "{project_path}",
         ]
-        code, _ = self.invoke([
+        code, output = self.invoke([
             "scanner", "add", "--id", "semgrep-local", "--name", "Semgrep local",
             "--parser", "semgrep", "--command-json", json.dumps(command),
         ])
