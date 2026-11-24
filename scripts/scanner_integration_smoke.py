@@ -39,7 +39,12 @@ def main() -> int:
             cwd=str(project),
         )
         if not any(item.rule_id == "crc.integration.eval" for item in semgrep.findings):
-            raise RuntimeError("Semgrep did not report the expected local fixture finding")
+            raise RuntimeError(
+                "Semgrep did not report the expected local fixture finding; "
+                f"exit={semgrep.process_result.returncode}; "
+                f"stdout={semgrep.process_result.stdout[:2000]!r}; "
+                f"stderr={semgrep.process_result.stderr[:2000]!r}"
+            )
 
         test_access_key = "AKIAIOSFODNN7EXAMPLE"
         (project / "credentials.txt").write_text(
