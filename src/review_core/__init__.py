@@ -10,8 +10,12 @@ from .orchestration import ScanBatchResult, ScanJob, ScanJobResult, ScanStatus, 
 from .storage import ScanStore
 from .projects import Project, ProjectRegistry
 from .configuration import ScannerConfigStore, ScannerProfile
+from .application import build_scan_jobs, scan_project
+from .correlation import CorrelatedFinding, CorrelationEvidence, correlate_findings
 
 __all__ = [
+    "CorrelatedFinding",
+    "CorrelationEvidence",
     "EngineCancelledError",
     "EngineExecutionError",
     "EngineResult",
@@ -29,15 +33,15 @@ __all__ = [
     "ScannerProfile",
     "ScanResult",
     "FindingSeverity",
+    "build_scan_jobs",
+    "correlate_findings",
     "deduplicate_findings",
     "parse_gitleaks",
     "parse_sarif",
     "parse_semgrep",
+    "scan_project",
     "run_engine",
     "run_scanner",
     "run_scan_batch",
 ]
 
-from .application import build_scan_jobs, scan_project
-
-from .correlation import CorrelatedFinding, CorrelationEvidence, correlate_findings
