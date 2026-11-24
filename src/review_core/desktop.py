@@ -130,6 +130,10 @@ def main() -> int:
         selection = scanner_list.curselection()
         return scanner_rows[selection[0]] if selection else None
 
+    def selected_provider():
+        selection = provider_list.curselection()
+        return provider_rows[selection[0]] if selection else None
+
     def refresh_projects():
         nonlocal project_rows
         project_rows = projects.list_projects()
@@ -144,6 +148,14 @@ def main() -> int:
         for item in scanner_rows:
             marker = "●" if item.enabled else "○"
             scanner_list.insert("end", f"{marker} {item.name}  [{item.parser}]")
+
+    def refresh_providers():
+        nonlocal provider_rows
+        provider_rows = providers.list_profiles()
+        provider_list.delete(0, "end")
+        for item in provider_rows:
+            marker = "●" if item.enabled else "○"
+            provider_list.insert("end", f"{marker} {item.name}  [{item.model}]")
 
     def refresh_history():
         for item in history_tree.get_children():
@@ -218,6 +230,33 @@ def main() -> int:
         if messagebox.askyesno("Remove scanner", f"Remove profile {item.name}?"):
             scanners.remove(item.scanner_id)
             refresh_scanners()
+
+    def add_provider():
+        provider_id = simpledialog.askstring("AI reviewer", "Provider ID (e.g. local-ollama):")
+        if not provider_id:
+            return
+        name = simpledialog.askstring("AI reviewer", "Display name:")
+        url = simpledialog.askstring("AI reviewer", "OpenAI-compatible base URL:")
+        model = simpledialog.askstring("AI reviewer", "Model name:")
+        if not name or not url or not model:
+            return
+        key_env = simpledialog.askstring("AI reviewer", "API-key environment variable (blank for local models):")
+        timeout = simpledialog.askinteger("AI reviewer", "Timeout in seconds:", initialvalue=60, minvalue=1)
+        try:
+            profile = ProviderProfile(provider_id, name, url, model, key_env or None, timeout or 60)
+            providers.save(profile)
+            refresh_providers()
+            status_var.set("AI reviewer saved; key remains in environment")
+        except (ValueError, TypeError) as exc:
+            messagebox.showerror("AI reviewer", str(exc))
+
+    def remove_provider():
+        item = selected_provider()
+        if item is None:
+            return
+        if messagebox.askyesno("Remove AI reviewer", f"Remove {item.name}?"):
+            providers.remove(item.provider_id)
+            refresh_providers()
 
     def render_findings(findings):
         for item in finding_tree.get_children():
@@ -313,6 +352,7 @@ def main() -> int:
 
     refresh_projects()
     refresh_scanners()
+    refresh_providers()
     refresh_history()
     root.after(100, poll_events)
     root.mainloop()
