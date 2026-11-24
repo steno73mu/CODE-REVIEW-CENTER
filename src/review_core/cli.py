@@ -8,7 +8,8 @@ from pathlib import Path
 import sys
 import uuid
 
-from .adapters import parse_gitleaks, parse_sarif, parse_semgrep
+from .adapters import parse_gitleaks, parse_semgrep
+from .sarif import parse_sarif
 from .configuration import ScannerConfigStore, ScannerProfile
 from .orchestration import ScanJob, run_scan_batch
 from .projects import ProjectRegistry
