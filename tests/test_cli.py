@@ -47,7 +47,7 @@ class CommandLineTests(unittest.TestCase):
         self.assertEqual(code, 0, output)
 
         code, output = self.invoke(["scan", "--project", project_id])
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 0, output)
         session_id = json.loads(output)["session_id"]
 
         code, output = self.invoke(["history", "show", session_id])
