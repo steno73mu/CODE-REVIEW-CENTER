@@ -85,6 +85,25 @@ class ScanOrchestrationTests(unittest.TestCase):
         self.assertEqual(result.jobs[0].status, ScanStatus.TIMED_OUT)
         self.assertEqual(result.jobs[1].status, ScanStatus.SUCCEEDED)
 
+    def test_cancellation_stops_an_already_running_scanner(self):
+        cancellation = threading.Event()
+
+        def cancel_soon():
+            time.sleep(0.1)
+            cancellation.set()
+
+        thread = threading.Thread(target=cancel_soon)
+        thread.start()
+        try:
+            result = run_scan_batch(
+                [ScanJob("slow", [sys.executable, "-c", "import time; time.sleep(5)"], parse_semgrep)],
+                cancel_event=cancellation,
+            )
+        finally:
+            thread.join(timeout=1)
+
+        self.assertEqual(result.jobs[0].status, ScanStatus.CANCELLED)
+
 
 if __name__ == "__main__":
     unittest.main()
