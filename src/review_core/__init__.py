@@ -9,11 +9,15 @@ from .scanning import ScanExecutionError, ScanResult, run_scanner
 from .orchestration import ScanBatchResult, ScanJob, ScanJobResult, ScanStatus, run_scan_batch
 from .storage import ScanStore
 from .projects import Project, ProjectRegistry
-from .configuration import ScannerConfigStore, ScannerProfile
+from .configuration import ProviderConfigStore, ProviderProfile, ScannerConfigStore, ScannerProfile
 from .application import build_scan_jobs, scan_project
 from .correlation import CorrelatedFinding, CorrelationEvidence, correlate_findings
+from .providers import AIReviewClient, AIReviewError, AIReviewResult
 
 __all__ = [
+    "AIReviewClient",
+    "AIReviewError",
+    "AIReviewResult",
     "CorrelatedFinding",
     "CorrelationEvidence",
     "EngineCancelledError",
@@ -27,6 +31,8 @@ __all__ = [
     "ScanJobResult",
     "ScanStatus",
     "ScanStore",
+    "ProviderConfigStore",
+    "ProviderProfile",
     "Project",
     "ProjectRegistry",
     "ScannerConfigStore",
