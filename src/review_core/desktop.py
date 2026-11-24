@@ -28,7 +28,7 @@ def main() -> int:
     from .projects import ProjectRegistry
     from .storage import ScanStore
     from .reports import render_report, write_report
-    from .triage import TriageStore\n    from .github_source import clone_github_repository
+    from .triage import TriageStore\n    from .github_source import clone_github_repository, update_github_repository
 
     database = ensure_data_directory() / "review.sqlite3"
     projects = ProjectRegistry(database)
@@ -429,7 +429,7 @@ def main() -> int:
                     succeeded = sum(item.status.value == "succeeded" for item in batch.jobs)
                     status_var.set(f"Scan saved · {len(batch.findings)} unique findings · {len(batch.correlations)} correlation groups · {succeeded}/{len(batch.jobs)} scanners succeeded")
                     notebook.select(findings_tab)
-                elif event[0] == "github_success":\n                    _, project_name, checkout = event\n                    refresh_projects()\n                    status_var.set(f"GitHub repository ready for local review · {project_name}")\n                elif event[0] == "review_success":
+                elif event[0] == "github_success":\n                    _, project_name, checkout = event\n                    refresh_projects()\n                    status_var.set(f"GitHub repository ready for local review · {project_name}")\n                elif event[0] == "github_updated":\n                    _, project_name, checkout = event\n                    status_var.set(f"GitHub repository updated · {project_name}")\n                elif event[0] == "review_success":
                     _, review_id, review = event
                     status_var.set(f"AI review saved · {review.provider_id}")
                     window = tk.Toplevel(root)
