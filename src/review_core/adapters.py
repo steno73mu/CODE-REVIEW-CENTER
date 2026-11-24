@@ -85,7 +85,7 @@ def parse_gitleaks(document: list[Any] | str | bytes) -> list[Finding]:
 
         rule_id = _required_string(result.get("RuleID"), f"Gitleaks finding {index} RuleID")
         description = _optional_string(result.get("Description"))
-        path = _optional_string(result.get("File"))
+        path = _required_string(result.get("File"), f"Gitleaks finding {index} File")
         message = description or f"Secret detected by Gitleaks rule {rule_id}"
 
         findings.append(
