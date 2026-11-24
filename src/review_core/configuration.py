@@ -5,6 +5,7 @@ import ipaddress
 import json
 import math
 from pathlib import Path
+from .database import connect_database
 import re
 import sqlite3
 from urllib.parse import urlparse
@@ -90,10 +91,8 @@ class ScannerConfigStore:
                 """
             )
 
-    def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self.database, timeout=10.0)
-        connection.row_factory = sqlite3.Row
-        return connection
+    def _connect(self):
+        return connect_database(self.database)
 
     @staticmethod
     def _from_row(row: sqlite3.Row) -> ScannerProfile:
