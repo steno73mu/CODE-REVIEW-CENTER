@@ -8,6 +8,7 @@ from .sarif import parse_sarif
 from .scanning import ScanExecutionError, ScanResult, run_scanner
 from .orchestration import ScanBatchResult, ScanJob, ScanJobResult, ScanStatus, run_scan_batch
 from .storage import ScanStore
+from .projects import Project, ProjectRegistry
 
 __all__ = [
     "EngineExecutionError",
@@ -20,6 +21,8 @@ __all__ = [
     "ScanJobResult",
     "ScanStatus",
     "ScanStore",
+    "Project",
+    "ProjectRegistry",
     "ScanResult",
     "FindingSeverity",
     "deduplicate_findings",
