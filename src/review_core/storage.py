@@ -56,6 +56,12 @@ class ScanStore:
                     payload TEXT NOT NULL,
                     PRIMARY KEY (session_id, fingerprint)
                 );
+                CREATE TABLE IF NOT EXISTS scan_correlations (
+                    session_id TEXT NOT NULL REFERENCES scan_sessions(session_id) ON DELETE CASCADE,
+                    group_order INTEGER NOT NULL,
+                    payload TEXT NOT NULL,
+                    PRIMARY KEY (session_id, group_order)
+                );
                 CREATE INDEX IF NOT EXISTS idx_scan_sessions_created
                     ON scan_sessions(created_at DESC);
                 """
@@ -155,6 +161,10 @@ class ScanStore:
                 "SELECT payload FROM findings WHERE session_id = ? ORDER BY rowid",
                 (session_id,),
             ).fetchall()
+            correlations = connection.execute(
+                "SELECT payload FROM scan_correlations WHERE session_id = ? ORDER BY group_order",
+                (session_id,),
+            ).fetchall()
         return {
             "session_id": session["session_id"],
             "created_at": session["created_at"],
@@ -163,6 +173,7 @@ class ScanStore:
             "cancelled": bool(session["cancelled"]),
             "jobs": [dict(job) for job in jobs],
             "findings": [json.loads(row["payload"]) for row in findings],
+            "correlations": [json.loads(row["payload"]) for row in correlations],
         }
 
     def list_sessions(self, *, limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:
