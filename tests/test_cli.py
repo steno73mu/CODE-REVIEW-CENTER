@@ -103,6 +103,12 @@ class CommandLineTests(unittest.TestCase):
         directory = ensure_data_directory()
         self.assertEqual(directory.stat().st_mode & 0o777, 0o700)
 
+    def test_semgrep_preset_registers_a_safe_argument_array(self):
+        code, output = self.invoke(["scanner", "preset", "add", "semgrep"])
+        self.assertEqual(code, 0, output)
+        profile = json.loads(output)
+        self.assertEqual(profile["parser"], "semgrep")
+        self.assertEqual(profile["command"][-1], "{project_path}")
 
 if __name__ == "__main__":
     unittest.main()
