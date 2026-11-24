@@ -14,7 +14,8 @@ All notable changes to CODE-REVIEW-CENTER are documented here.
 - Local project registry and validated scanner/provider configuration.
 - `crc` CLI for projects, scanner profiles, scans, providers, AI reviews, and history.
 - `crc-desktop` Tkinter workspace for local project management, scanner profiles, background scans, findings, history, and AI review.
-- GitHub Actions checks for package installation, CLI entry point, desktop module import, and unit tests.
+- JSON, SARIF 2.1.0, and Markdown report export, including correlation evidence and saved AI reviews.
+- GitHub Actions checks for package installation, CLI entry point, desktop module import, and unit tests across Linux and Windows on Python 3.11-3.13.
 
 ### Security
 - Gitleaks secret values and matched source text are excluded from normalized findings.
