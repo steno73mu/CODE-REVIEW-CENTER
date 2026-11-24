@@ -39,3 +39,5 @@ __all__ = [
 ]
 
 from .application import build_scan_jobs, scan_project
+
+from .correlation import CorrelatedFinding, CorrelationEvidence, correlate_findings
