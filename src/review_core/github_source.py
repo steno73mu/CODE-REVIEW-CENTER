@@ -40,7 +40,7 @@ def _git(command: list[str], *, timeout: int) -> subprocess.CompletedProcess[str
 def clone_github_repository(url: str, destination_root: str | Path, *, branch: str | None = None) -> Path:
     """Clone a GitHub repository as data; never execute repository code."""
     repository_url = validate_github_url(url)
-    if branch is not None and (not branch.strip() or branch.startswith("-") or any(char in branch for "\0\r\n")):
+    if branch is not None and (not branch.strip() or branch.startswith("-") or any(char in branch for char in "\0\r\n")):
         raise ValueError("branch name is invalid")
     root = Path(destination_root).expanduser()
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
