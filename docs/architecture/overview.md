@@ -39,7 +39,7 @@ The initial Python package lives in src/review_core/.
 - parse_gitleaks accepts Gitleaks JSON output but deliberately discards Secret and Match fields to avoid persisting credential material.
 - deduplicate_findings removes exact fingerprint repeats while preserving first-seen order. It deliberately does not perform cross-engine correlation or severity arbitration.
 
-The core currently uses Python 3.11+ and the standard library only.
+The core currently uses Python 3.11+ and the standard library only.\n\n`run_engine` launches a trusted executable from an argument sequence (never through a shell), applies a positive timeout, and captures UTF-8 stdout/stderr, exit status, and duration. Non-zero exit codes remain available to the caller because scanners may use them to signal findings. Startup failures and timeouts have distinct exception types. The runner is not a sandbox: only trusted, locally installed analysis binaries may be invoked, and untrusted repository scripts, hooks, or build commands must never be executed by this layer.
 
 ## Implementation sequence
 
