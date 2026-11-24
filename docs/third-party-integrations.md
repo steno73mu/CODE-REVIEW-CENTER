@@ -19,10 +19,10 @@ The license labels above describe the upstream repository license files inspecte
 
 The cross-platform scanner integration workflow currently pins and validates:
 
-- **Semgrep 1.187.0** — local YAML rule against a generated Python fixture.
+- **Semgrep 1.187.0** — local YAML rule and `--config auto` against a generated Python fixture. The auto-config check explicitly permits Semgrep run metrics, which Semgrep requires for auto-config creation.
 - **Gitleaks 8.30.1** — official release archives with SHA-256 checksum verification; a synthetic GitHub token is detected and its value is confirmed absent from stdout and normalized findings.
 
-Both integration checks passed on GitHub-hosted Ubuntu and Windows runners. These are smoke tests of the CLI adapters and redaction boundary, not a substitute for validating Semgrep's built-in `--config auto` preset against a representative repository.
+The synthetic-fixture integration checks passed on GitHub-hosted Ubuntu and Windows runners in [workflow run 45503977330](https://github.com/steno73mu/CODE-REVIEW-CENTER/actions/runs/45503977330). This validates the Semgrep CLI adapter, the auto-config path, and the Gitleaks redaction boundary. A representative real repository still needs validation.
 
 ## Obligations and release gates
 
