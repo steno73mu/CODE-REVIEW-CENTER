@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import json
 from pathlib import Path
+from .database import connect_database
 import re
 import sqlite3
 import uuid
@@ -25,10 +26,8 @@ class ScanStore:
         self.database.parent.mkdir(parents=True, exist_ok=True)
         self._initialize()
 
-    def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self.database, timeout=10.0)
-        connection.row_factory = sqlite3.Row
-        return connection
+    def _connect(self):
+        return connect_database(self.database)
 
     def _initialize(self) -> None:
         with self._connect() as connection:
