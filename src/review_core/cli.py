@@ -16,7 +16,7 @@ from .projects import ProjectRegistry
 from .storage import ScanStore
 from .finding import Finding
 from .reports import render_report, write_report
-from .triage import TriageStore, TriageStatus\nfrom .github_source import clone_github_repository, update_github_repository
+from .triage import TriageStore, TriageStatus\nfrom .github_source import clone_github_repository, update_github_repository, validate_github_url
 
 
 def data_directory() -> Path:
