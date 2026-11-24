@@ -71,6 +71,23 @@ class ScanStoreTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     self.store.save_batch(session_id, self._batch())
 
+    def test_persists_correlation_evidence_with_the_scan(self):
+        import sys
+        from review_core.finding import Finding
+        from review_core.orchestration import ScanJob, run_scan_batch
+
+        batch = run_scan_batch([
+            ScanJob("engine-a", [sys.executable, "-c", "print('report')"],
+                    lambda _report: [Finding(tool="A", path="a.py", start_line=3, message="Unsafe call")]),
+            ScanJob("engine-b", [sys.executable, "-c", "print('report')"],
+                    lambda _report: [Finding(tool="B", path="a.py", start_line=3, message="Unsafe call")]),
+        ])
+        self.store.save_batch("scan-correlated", batch)
+        loaded = self.store.get_batch("scan-correlated")
+
+        self.assertEqual(len(loaded["correlations"]), 1)
+        self.assertEqual(loaded["correlations"][0]["evidence"][0]["method"], "same_location_and_message")
+
 
 if __name__ == "__main__":
     unittest.main()
