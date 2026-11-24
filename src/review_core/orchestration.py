@@ -120,6 +120,8 @@ def run_scan_batch(
         raise ValueError("jobs must be a sequence of ScanJob instances")
 
     normalized_jobs = tuple(jobs)
+    if not normalized_jobs:
+        raise ValueError("jobs must contain at least one scanner job")
     if any(not isinstance(job, ScanJob) for job in normalized_jobs):
         raise ValueError("jobs must contain only ScanJob instances")
     ids = [job.job_id for job in normalized_jobs]
