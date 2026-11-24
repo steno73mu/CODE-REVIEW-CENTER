@@ -13,8 +13,8 @@ permissions:
 
 jobs:
   scanner-integration:
-    name: scanner-integration (\${{ matrix.os }})
-    runs-on: \${{ matrix.os }}
+    name: scanner-integration (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     strategy:
       fail-fast: false
