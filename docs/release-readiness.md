@@ -8,7 +8,9 @@ The current branch is a functional MVP, not a production release. Complete this 
 - [x] Record current upstream scanner license files and confirm that scanner source/binaries are not vendored; see [third-party integration notes](third-party-integrations.md).
 - [ ] Complete a version-specific license/notice audit for the exact scanner releases used in cross-platform integration tests and for any future dependencies.
 - [x] Record the tested Semgrep and Gitleaks versions, installation instructions, and upstream license terms. Scanner binaries are external tools and are not bundled; see [third-party integration notes](third-party-integrations.md).
-- [ ] Validate the built-in Semgrep preset against a real local repository and confirm exit-code behavior.
+- [x] Validate the synthetic Semgrep `--config auto` path on Ubuntu and Windows; the representative-repository check remains open.
+- [x] Validate Semgrep `--config auto` against a synthetic Python fixture on GitHub-hosted Ubuntu and Windows; [workflow run 45503977330](https://github.com/steno73mu/CODE-REVIEW-CENTER/actions/runs/45503977330). The check enables Semgrep run metrics because auto-config creation requires them.
+- [ ] Validate the built-in Semgrep preset against a representative real local repository and confirm exit-code behavior.
 - [x] Validate the Gitleaks adapter and a supported cross-platform invocation on Linux and Windows; CI confirms redacted output on both platforms.
 - [x] Prevent scanner executable shadowing: relative PATH entries and executable paths inside the scanned project are rejected.
 - [x] Smoke-test Tk workspace initialization on GitHub-hosted Linux (Xvfb) and Windows runners.
