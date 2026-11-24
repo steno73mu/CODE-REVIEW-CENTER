@@ -55,7 +55,7 @@ class FindingCorrelationTests(unittest.TestCase):
         findings = [
             Finding(
                 tool="Semgrep",
-                path="src\\\\app.py",
+                path="src\\app.py",
                 start_line=12,
                 message="  Unsafe   deserialization ",
             ),
