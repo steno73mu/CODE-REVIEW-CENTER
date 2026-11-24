@@ -22,4 +22,5 @@ All notable changes to CODE-REVIEW-CENTER are documented here.
 - Provider API keys are referenced through environment variables and are never stored in SQLite.
 - Remote AI review requires explicit opt-in; remote endpoints must use HTTPS.
 - Scanner output and provider responses have bounded capture sizes.
+- SQLite connections are explicitly closed after each transaction for Windows compatibility.
 - Public pull-request CI uses GitHub-hosted runners, not the self-hosted Pop!_OS runner.
