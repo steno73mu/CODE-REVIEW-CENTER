@@ -163,10 +163,12 @@ def main(argv: list[str] | None = None) -> int:
             result = AIReviewClient().review_findings(
                 provider, findings, allow_external=args.allow_external
             )
+            review_id = history.save_ai_review(args.session, result)
             _json({
                 "provider_id": result.provider_id,
                 "model": result.model,
                 "session_id": args.session,
+                "review_id": review_id,
                 "finding_count": len(findings),
                 "review": result.content,
             })
