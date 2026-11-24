@@ -14,6 +14,7 @@ from .finding import Finding
 
 
 _MAX_RESPONSE_BYTES = 2 * 1024 * 1024
+_MAX_REQUEST_BYTES = 1 * 1024 * 1024
 
 
 class AIReviewError(RuntimeError):
@@ -111,9 +112,12 @@ class AIReviewClient:
         headers = {"Content-Type": "application/json", "Accept": "application/json"}
         if api_key:
             headers["Authorization"] = f"Bearer {api_key}"
+        request_body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        if len(request_body) > _MAX_REQUEST_BYTES:
+            raise AIReviewError("AI review request exceeded the 1 MiB safety limit")
         request = Request(
             url,
-            data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+            data=request_body,
             headers=headers,
             method="POST",
         )
