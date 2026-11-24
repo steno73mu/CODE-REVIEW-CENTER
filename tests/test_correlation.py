@@ -51,6 +51,38 @@ class FindingCorrelationTests(unittest.TestCase):
         self.assertEqual(group.evidence[0].left_fingerprint, findings[0].fingerprint)
         self.assertEqual(group.evidence[0].right_fingerprint, findings[1].fingerprint)
 
+    def test_correlates_normalized_windows_paths_and_messages_across_three_tools(self):
+        findings = [
+            Finding(
+                tool="Semgrep",
+                path="src\\\\app.py",
+                start_line=12,
+                message="  Unsafe   deserialization ",
+            ),
+            Finding(
+                tool="CodeQL",
+                path="src/app.py",
+                start_line=12,
+                message="unsafe deserialization",
+            ),
+            Finding(
+                tool="Bandit",
+                path="src//app.py",
+                start_line=12,
+                message="UNSAFE DESERIALIZATION",
+            ),
+        ]
+
+        groups = correlate_findings(findings)
+
+        self.assertEqual(len(groups), 1)
+        self.assertEqual(groups[0].findings, tuple(findings))
+        self.assertEqual(len(groups[0].evidence), 2)
+        self.assertTrue(all(item.similarity == 1.0 for item in groups[0].evidence))
+        self.assertTrue(
+            all(item.left_fingerprint == findings[0].fingerprint for item in groups[0].evidence)
+        )
+
     def test_rejects_invalid_similarity_threshold(self):
         for threshold in (-0.1, 1.1, True):
             with self.subTest(threshold=threshold):
