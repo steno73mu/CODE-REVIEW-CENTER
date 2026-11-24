@@ -24,6 +24,7 @@ def main() -> int:
     from .projects import ProjectRegistry
     from .storage import ScanStore
     from .reports import render_report, write_report
+    from .triage import TriageStore
 
     data_directory().mkdir(parents=True, exist_ok=True)
     database = data_directory() / "review.sqlite3"
@@ -31,6 +32,7 @@ def main() -> int:
     scanners = ScannerConfigStore(database)
     providers = ProviderConfigStore(database)
     history = ScanStore(database)
+    triage_store = TriageStore(database)
 
     root = tk.Tk()
     root.title("CODE-REVIEW-CENTER")
@@ -42,6 +44,8 @@ def main() -> int:
     provider_rows = []
     cancellation = threading.Event()
     events: queue.Queue = queue.Queue()
+    current_session_id = None
+    current_findings = []
 
     outer = ttk.Frame(root, padding=12)
     outer.pack(fill="both", expand=True)
@@ -98,11 +102,18 @@ def main() -> int:
     notebook.add(findings_tab, text="Findings")
     notebook.add(history_tab, text="History")
 
-    finding_columns = ("severity", "tool", "rule", "path", "line", "message")
+    finding_columns = ("severity", "triage", "tool", "rule", "path", "line", "message")
     finding_tree = ttk.Treeview(findings_tab, columns=finding_columns, show="headings")
-    for column, width in (("severity", 90), ("tool", 100), ("rule", 150), ("path", 180), ("line", 60), ("message", 440)):
+    for column, width in (("severity", 80), ("triage", 110), ("tool", 90), ("rule", 130), ("path", 160), ("line", 55), ("message", 380)):
         finding_tree.heading(column, text=column.title())
         finding_tree.column(column, width=width, anchor="w")
+    triage_actions = ttk.Frame(findings_tab)
+    triage_actions.pack(fill="x", pady=(0, 6))
+    ttk.Button(triage_actions, text="Accepted", command=lambda: set_finding_status("accepted")).pack(side="left")
+    ttk.Button(triage_actions, text="False positive", command=lambda: set_finding_status("false_positive")).pack(side="left", padx=4)
+    ttk.Button(triage_actions, text="Fixed", command=lambda: set_finding_status("fixed")).pack(side="left")
+    ttk.Button(triage_actions, text="Reopen", command=lambda: set_finding_status("open")).pack(side="left", padx=4)
+
     finding_tree.pack(fill="both", expand=True)
 
     history_columns = ("session_id", "created_at", "status", "duration_seconds")
