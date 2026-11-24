@@ -340,22 +340,8 @@ def main() -> int:
         record = history.get_batch(selection[0])
         if record is None:
             return
-        for item in finding_tree.get_children():
-            finding_tree.delete(item)
-        for index, finding in enumerate(record["findings"]):
-            finding_tree.insert(
-                "",
-                "end",
-                iid=str(index),
-                values=(
-                    finding["severity"],
-                    finding["tool"],
-                    finding["rule_id"] or "",
-                    finding["path"] or "",
-                    finding["start_line"] or "",
-                    finding["message"],
-                ),
-            )
+        findings = [Finding(**item) for item in record["findings"]]
+        render_findings(findings, selection[0])
         notebook.select(findings_tab)
 
     def export_selected():
@@ -380,6 +366,7 @@ def main() -> int:
             return
         try:
             record = history.get_batch(selection[0])
+            record["triage"] = triage_store.list_for_session(selection[0])
             write_report(path, render_report(record, report_format), overwrite=overwrite)
             status_var.set(f"Report exported · {path}")
         except (ValueError, OSError, TypeError) as exc:
@@ -433,7 +420,7 @@ def main() -> int:
                 cancel_button.configure(state="disabled")
                 if event[0] == "success":
                     _, session_id, batch = event
-                    render_findings(batch.findings)
+                    render_findings(batch.findings, session_id)
                     refresh_history()
                     succeeded = sum(item.status.value == "succeeded" for item in batch.jobs)
                     status_var.set(f"Scan saved · {len(batch.findings)} unique findings · {len(batch.correlations)} correlation groups · {succeeded}/{len(batch.jobs)} scanners succeeded")
