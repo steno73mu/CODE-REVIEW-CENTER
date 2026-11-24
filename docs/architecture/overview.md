@@ -41,7 +41,8 @@ The initial Python package lives in src/review_core/.
 - parse_sarif accepts a decoded SARIF mapping or JSON text/bytes and supports SARIF 2.1.0.
 - parse_semgrep accepts Semgrep JSON output and maps rule, message, severity, version, and source coordinates.
 - parse_gitleaks accepts Gitleaks JSON output but deliberately discards Secret and Match fields to avoid persisting credential material.
-- deduplicate_findings removes exact fingerprint repeats while preserving first-seen order.\n- correlate_findings groups only cross-tool findings at the same normalized file path and line with a configurable high message-similarity threshold. Every group retains pairwise fingerprints, method, and score; original severities and finding records are not merged.
+- deduplicate_findings removes exact fingerprint repeats while preserving first-seen order.
+- correlate_findings groups only cross-tool findings at the same normalized file path and line with a configurable high message-similarity threshold. Every group retains pairwise fingerprints, method, and score; original severities and finding records are not merged.
 
 The core currently uses Python 3.11+ and the standard library only.
 
