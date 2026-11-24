@@ -38,7 +38,7 @@ def main() -> int:
             timeout_seconds=120,
             cwd=str(project),
         )
-        if not any(item.rule_id == "crc.integration.eval" for item in semgrep.findings):
+        if not any(item.rule_id.endswith("crc.integration.eval") for item in semgrep.findings):
             raise RuntimeError(
                 "Semgrep did not report the expected local fixture finding; "
                 f"exit={semgrep.process_result.returncode}; "
