@@ -50,7 +50,7 @@ def main() -> int:
             semgrep_auto = run_scanner(
                 [
                     "semgrep", "scan", "--config", "auto",
-                    "--json", "--quiet", "--metrics=off", str(project),
+                    "--json", "--quiet", "--metrics=on", str(project),
                 ],
                 parser=parse_semgrep,
                 accepted_exit_codes=(0,),
