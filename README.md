@@ -81,10 +81,22 @@ python -m pip install .
 crc doctor
 ```
 
-### Register a project and scanners
+### Add a local folder or GitHub repository
+
+Register a folder already on your computer, or clone a GitHub repository into CODE-REVIEW-CENTER's private application data folder. The source checkout, scan results, and history stay on your computer. Git must be installed. Public repositories work without credentials; private repositories require Git credentials already configured for Git.
 
 ```bash
 crc project add --name my-project --path /path/to/repository
+crc project clone --url https://github.com/owner/repository --name my-project --branch main
+crc project list
+crc project update PROJECT_ID
+```
+
+The desktop workspace also provides **Add GitHub** and **Update** actions in the projects panel. Updating uses a fast-forward-only pull and leaves locally modified files untouched.
+
+### Register scanners and run a review
+
+```bash
 crc scanner preset add semgrep
 crc scanner preset add gitleaks
 crc project list
