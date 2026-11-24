@@ -23,6 +23,7 @@ def main() -> int:
     from .application import scan_project
     from .projects import ProjectRegistry
     from .storage import ScanStore
+    from .reports import render_report, write_report
 
     data_directory().mkdir(parents=True, exist_ok=True)
     database = data_directory() / "review.sqlite3"
@@ -108,6 +109,7 @@ def main() -> int:
     history_actions = ttk.Frame(history_tab)
     history_actions.pack(fill="x", pady=(0, 6))
     ttk.Button(history_actions, text="AI review selected session", command=lambda: review_selected()).pack(side="left")
+    ttk.Button(history_actions, text="Export report", command=lambda: export_selected()).pack(side="left", padx=6)
     history_tree = ttk.Treeview(history_tab, columns=history_columns, show="headings", height=12)
     for column, width in (("session_id", 280), ("created_at", 240), ("status", 120), ("duration_seconds", 120)):
         history_tree.heading(column, text=column.replace("_", " ").title())
@@ -328,6 +330,33 @@ def main() -> int:
                 ),
             )
         notebook.select(findings_tab)
+
+    def export_selected():
+        selection = history_tree.selection()
+        if not selection:
+            messagebox.showinfo("Export report", "Select a saved scan session first.")
+            return
+        path = filedialog.asksaveasfilename(
+            title="Export scan report",
+            defaultextension=".sarif",
+            filetypes=[("SARIF", "*.sarif"), ("Markdown", "*.md"), ("JSON", "*.json")],
+        )
+        if not path:
+            return
+        suffix = Path(path).suffix.casefold()
+        report_format = {".sarif": "sarif", ".md": "markdown", ".json": "json"}.get(suffix)
+        if report_format is None:
+            messagebox.showerror("Export report", "Choose a .sarif, .md, or .json extension.")
+            return
+        overwrite = Path(path).exists()
+        if overwrite and not messagebox.askyesno("Overwrite report", f"Replace {path}?"):
+            return
+        try:
+            record = history.get_batch(selection[0])
+            write_report(path, render_report(record, report_format), overwrite=overwrite)
+            status_var.set(f"Report exported · {path}")
+        except (ValueError, OSError, TypeError) as exc:
+            messagebox.showerror("Export report", str(exc))
 
     def review_selected():
         selection = history_tree.selection()
