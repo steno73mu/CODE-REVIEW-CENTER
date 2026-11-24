@@ -89,6 +89,12 @@ class CommandLineTests(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertIn("unknown scan session", output)
 
+    @unittest.skipIf(os.name == "nt", "POSIX permission bits are not portable on Windows")
+    def test_application_data_directory_is_private(self):
+        from review_core.cli import ensure_data_directory
+        directory = ensure_data_directory()
+        self.assertEqual(directory.stat().st_mode & 0o777, 0o700)
+
 
 if __name__ == "__main__":
     unittest.main()
