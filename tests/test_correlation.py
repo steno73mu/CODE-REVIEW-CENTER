@@ -83,6 +83,15 @@ class FindingCorrelationTests(unittest.TestCase):
             all(item.left_fingerprint == findings[0].fingerprint for item in groups[0].evidence)
         )
 
+    def test_does_not_correlate_case_distinct_paths_or_adjacent_lines(self):
+        findings = [
+            Finding(tool="A", path="src/App.py", start_line=12, message="Unsafe call"),
+            Finding(tool="B", path="src/app.py", start_line=12, message="Unsafe call"),
+            Finding(tool="C", path="src/App.py", start_line=13, message="Unsafe call"),
+        ]
+
+        self.assertEqual(correlate_findings(findings), ())
+
     def test_rejects_invalid_similarity_threshold(self):
         for threshold in (-0.1, 1.1, True):
             with self.subTest(threshold=threshold):
