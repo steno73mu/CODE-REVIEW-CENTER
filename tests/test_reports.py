@@ -60,6 +60,22 @@ class ReportGenerationTests(unittest.TestCase):
         self.assertIn("src/app.py:12", rendered)
         self.assertIn("false_positive", rendered)
 
+    def test_escapes_untrusted_finding_markdown_and_fences_ai_review_content(self):
+        record = self._record()
+        attack = "![tracking pixel](https://example.invalid/pixel)"
+        record["findings"][0]["message"] = attack
+        record["ai_reviews"] = [{
+            "provider_id": "remote-reviewer",
+            "model": "review-model",
+            "content": attack,
+        }]
+
+        rendered = render_report(record, "markdown")
+
+        self.assertIn(r"\!\[tracking pixel\]\(https://example.invalid/pixel\)", rendered)
+        self.assertIn("## AI reviews", rendered)
+        self.assertIn(chr(96) * 3 + "text\n" + attack + "\n" + chr(96) * 3, rendered)
+
     def test_rejects_unknown_report_format(self):
         with self.assertRaises(ValueError):
             render_report(self._record(), "xml")
