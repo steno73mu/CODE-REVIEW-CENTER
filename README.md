@@ -100,7 +100,7 @@ Copy the `project_id` from `crc project list` and replace `PROJECT_ID` above. Se
 crc-desktop
 ```
 
-The desktop workspace supports project and scanner/provider profiles, background scans, cancellation, finding triage, AI review, history, and report export. On Linux, install the matching `python3-tk` package if Tkinter is not included with your Python interpreter.
+The desktop workspace supports project and scanner/provider profiles, background scans, cancellation, finding triage, AI review, history, and report export. On Windows, `crc-desktop` is installed as a GUI script and does not open an extra console window. On Linux, install the matching `python3-tk` package if Tkinter is not included with your Python interpreter.
 
 ### Configure a custom scanner
 
