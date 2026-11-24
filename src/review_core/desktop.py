@@ -16,7 +16,7 @@ def main() -> int:
             "Tkinter is not available. On Debian/Pop!_OS install python3-tk, then retry."
         ) from exc
 
-    from .cli import data_directory
+    from .cli import ensure_data_directory
     from .configuration import ProviderConfigStore, ProviderProfile, ScannerConfigStore, ScannerProfile
     from .providers import AIReviewClient
     from .finding import Finding
@@ -26,8 +26,7 @@ def main() -> int:
     from .reports import render_report, write_report
     from .triage import TriageStore
 
-    data_directory().mkdir(parents=True, exist_ok=True)
-    database = data_directory() / "review.sqlite3"
+    database = ensure_data_directory() / "review.sqlite3"
     projects = ProjectRegistry(database)
     scanners = ScannerConfigStore(database)
     providers = ProviderConfigStore(database)
