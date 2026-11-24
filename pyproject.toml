@@ -28,4 +28,6 @@ where = ["src"]
 
 [project.scripts]
 crc = "review_core.cli:main"
+
+[project.gui-scripts]
 crc-desktop = "review_core.desktop:main"
