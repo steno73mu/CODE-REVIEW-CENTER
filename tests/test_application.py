@@ -46,7 +46,7 @@ class ApplicationServiceTests(unittest.TestCase):
     def test_scan_project_respects_cancellation(self):
         profile = ScannerProfile(
             "test", "Test", "semgrep",
-            (sys.executable, "-c", "print('{}')"), (0,), 30,
+            (sys.executable, "-c", "print('{\"results\": []}')"), (0,), 30,
         )
         cancellation = Event()
         cancellation.set()
