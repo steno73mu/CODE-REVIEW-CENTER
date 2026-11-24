@@ -26,7 +26,7 @@ This is an original product, not a repackaged scanner or a fork of another revie
 - **Scanner adapters:** SARIF 2.1.0, Semgrep JSON, and Gitleaks JSON.
 - **Finding model:** validation, provenance, source coordinates, stable SHA-256 fingerprints.
 - **Deduplication and correlation:** deterministic exact deduplication plus conservative cross-engine matching with explicit pairwise evidence.
-- **Safe process contract:** argument arrays only (no shell), per-engine timeouts, running-process cancellation, bounded output capture, and a maximum of 32 concurrent jobs.
+- **Safe process contract:** argument arrays only (no shell), per-engine timeouts, process-tree termination on cancellation/timeout, bounded output capture, and a maximum of 32 concurrent jobs.
 - **Local persistence:** SQLite scan history, projects, scanner profiles, correlation evidence, AI reviews, and triage state.
 - **Finding triage:** open, accepted, false positive, fixed, or won't-fix, with reviewer notes.
 - **AI review:** OpenAI-compatible Chat Completions providers, local endpoints, environment-variable API key references, explicit remote-provider opt-in.
@@ -147,7 +147,7 @@ Supported report formats are JSON, SARIF 2.1.0, and Markdown. Existing output fi
 
 ## Security boundaries
 
-- The scanner launcher is **not a sandbox**. Configure only trusted local executables.
+- The scanner launcher is **not a sandbox**. Configure only trusted local executables. Timeouts and cancellation terminate the scanner process tree (POSIX process groups; Windows `taskkill /T`).
 - Output capture is 1 MiB per stream by default (hard maximum 64 MiB); raw stdout/stderr are not persisted.
 - Gitleaks preset requests 100% redaction, and the adapter excludes secret and matched-text fields from normalized findings.
 - Remote AI review requires explicit opt-in, HTTPS, and bounded request/response sizes. API keys stay in environment variables.
