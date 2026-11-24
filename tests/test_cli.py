@@ -70,6 +70,14 @@ class CommandLineTests(unittest.TestCase):
         ])
         self.assertEqual(code, 0, output)
         self.assertEqual(json.loads(report_path.read_text(encoding="utf-8"))["version"], "2.1.0")
+        code, output = self.invoke([
+            "provider", "add", "--id", "remote-session", "--name", "Remote reviewer",
+            "--url", "https://api.example.com/v1", "--model", "review-model",
+        ])
+        self.assertEqual(code, 0, output)
+        code, output = self.invoke(["review", "--session", session_id, "--provider", "remote-session"])
+        self.assertEqual(code, 2, output)
+        self.assertIn("requires explicit allow_external", output)
 
     def test_rejects_unknown_project_without_running_a_scanner(self):
         code, output = self.invoke(["scan", "--project", "missing"])
