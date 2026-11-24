@@ -8,7 +8,7 @@ All notable changes to CODE-REVIEW-CENTER are documented here.
 - Immutable normalized finding model and SHA-256 fingerprints.
 - SARIF 2.1.0, Semgrep JSON, and Gitleaks JSON adapters.
 - Exact fingerprint deduplication and conservative explainable cross-engine correlation.
-- Trusted scanner process execution with argv-only invocation, timeouts, bounded output, and cancellation.
+- Trusted scanner process execution with argv-only invocation, timeouts, bounded output, and process-tree termination on timeout/cancellation.
 - Concurrent multi-scanner orchestration with per-engine outcomes.
 - SQLite project, scanner-profile, scan-history, correlation-evidence, and AI-review persistence.
 - Local project registry and validated scanner/provider configuration.
@@ -23,6 +23,7 @@ All notable changes to CODE-REVIEW-CENTER are documented here.
 - Provider API keys are referenced through environment variables and are never stored in SQLite.
 - Remote AI review requires explicit opt-in; remote endpoints must use HTTPS.
 - Scanner output and provider responses have bounded capture sizes.
+- Scanner timeouts and cancellation terminate child processes that inherit scanner output pipes.
 - Markdown reports escape untrusted finding text and fence AI output as inert text.
 - Desktop AI-review completion events no longer alter the controls of a concurrently running scan.
 - SQLite connections are explicitly closed after each transaction for Windows compatibility.
