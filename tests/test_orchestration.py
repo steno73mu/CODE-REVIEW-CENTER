@@ -138,6 +138,10 @@ class ScanOrchestrationTests(unittest.TestCase):
         self.assertEqual(result.jobs[0].status, ScanStatus.FAILED)
         self.assertEqual(result.jobs[0].process_result.returncode, 7)
 
+    def test_rejects_empty_scan_batch(self):
+        with self.assertRaises(ValueError):
+            run_scan_batch([])
+
 
 if __name__ == "__main__":
     unittest.main()
