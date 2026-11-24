@@ -44,6 +44,10 @@ class ScannerProfile:
         for index, part in enumerate(self.command):
             if "\x00" in part:
                 raise ValueError("command arguments must not contain NUL characters")
+            if index == 0 and not part.strip():
+                raise ValueError("scanner executable must not be empty")
+            if "{project_path}" in part and part != "{project_path}":
+                raise ValueError("project_path must be a standalone command argument")
             if re.fullmatch(r"\{[A-Za-z_][A-Za-z0-9_]*\}", part) and part not in _ALLOWED_PLACEHOLDERS:
                 raise ValueError("command contains an unsupported placeholder")
             if index == 0 and part in _ALLOWED_PLACEHOLDERS:
