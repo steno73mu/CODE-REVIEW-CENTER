@@ -15,6 +15,7 @@ from .projects import ProjectRegistry
 from .storage import ScanStore
 from .finding import Finding
 from .reports import render_report, write_report
+from .triage import TriageStore, TriageStatus
 
 
 def data_directory() -> Path:
@@ -79,6 +80,16 @@ def _parser() -> argparse.ArgumentParser:
     scan.add_argument("--project", required=True)
     scan.add_argument("--max-workers", type=int, default=4)
 
+    triage = sub.add_parser("triage", help="set or inspect finding disposition")
+    triage_sub = triage.add_subparsers(dest="action", required=True)
+    triage_list = triage_sub.add_parser("list")
+    triage_list.add_argument("--session", required=True)
+    triage_set = triage_sub.add_parser("set")
+    triage_set.add_argument("--session", required=True)
+    triage_set.add_argument("--fingerprint", required=True)
+    triage_set.add_argument("--status", choices=tuple(item.value for item in TriageStatus), required=True)
+    triage_set.add_argument("--note", default=None)
+
     report = sub.add_parser("report", help="export a saved scan as JSON, SARIF, or Markdown")
     report.add_argument("--session", required=True)
     report.add_argument("--format", choices=("json", "sarif", "markdown"), required=True)
@@ -107,6 +118,7 @@ def main(argv: list[str] | None = None) -> int:
     scanners = ScannerConfigStore(database)
     providers = ProviderConfigStore(database)
     history = ScanStore(database)
+    triage_store = TriageStore(database)
 
     try:
         if args.resource == "project":
@@ -223,10 +235,17 @@ def main(argv: list[str] | None = None) -> int:
             if not any(item.status.value == "succeeded" for item in batch.jobs):
                 return 1
 
+        elif args.resource == "triage":
+            if args.action == "list":
+                _json(triage_store.list_for_session(args.session))
+            else:
+                _json(triage_store.set_status(args.session, args.fingerprint, args.status, note=args.note))
+
         elif args.resource == "report":
             session = history.get_batch(args.session)
             if session is None:
                 raise ValueError(f"unknown scan session: {args.session}")
+            session["triage"] = triage_store.list_for_session(args.session)
             rendered = render_report(session, args.format)
             target = write_report(args.output, rendered, overwrite=args.force)
             _json({"session_id": args.session, "format": args.format, "path": str(target)})
@@ -238,6 +257,7 @@ def main(argv: list[str] | None = None) -> int:
                 result = history.get_batch(args.session_id)
                 if result is None:
                     raise ValueError(f"unknown scan session: {args.session_id}")
+                result["triage"] = triage_store.list_for_session(args.session_id)
                 _json(result)
 
         return 0
