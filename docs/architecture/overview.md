@@ -35,14 +35,16 @@ The initial Python package lives in src/review_core/.
 - Finding is immutable and carries tool identity, rule, severity, message, location, help URI, and a stable fingerprint.
 - FindingSeverity provides the shared severity vocabulary.
 - parse_sarif accepts a decoded SARIF mapping or JSON text/bytes and supports SARIF 2.1.0.
+- parse_semgrep accepts Semgrep JSON output and maps rule, message, severity, version, and source coordinates.
+- parse_gitleaks accepts Gitleaks JSON output but deliberately discards Secret and Match fields to avoid persisting credential material.
 - deduplicate_findings removes exact fingerprint repeats while preserving first-seen order. It deliberately does not perform cross-engine correlation or severity arbitration.
 
 The core currently uses Python 3.11+ and the standard library only.
 
 ## Implementation sequence
 
-1. Establish and test the domain model and SARIF normalization. **In progress / first slice implemented.**
-2. Add adapters for concrete scanner output formats that are not adequately represented by SARIF.
+1. Establish and test the domain model and SARIF normalization. **Implemented first slice.**
+2. Add native JSON adapters for scanner formats not adequately represented by SARIF. **Semgrep and Gitleaks implemented.**
 3. Define scan/project persistence and engine execution contracts.
 4. Add cross-engine correlation with explainable matching evidence.
 5. Add provider configuration and AI review orchestration.
