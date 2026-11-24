@@ -63,6 +63,12 @@ def _parser() -> argparse.ArgumentParser:
     add_scanner.add_argument("--exit-codes", default="0")
     add_scanner.add_argument("--timeout", type=float, default=300.0)
     scanner_sub.add_parser("list")
+    preset = scanner_sub.add_parser("preset")
+    preset_sub = preset.add_subparsers(dest="preset_action", required=True)
+    preset_sub.add_parser("list")
+    preset_add = preset_sub.add_parser("add")
+    preset_add.add_argument("preset_name", choices=("semgrep",))
+
     remove_scanner = scanner_sub.add_parser("remove")
     remove_scanner.add_argument("scanner_id")
 
@@ -157,6 +163,20 @@ def main(argv: list[str] | None = None) -> int:
                 _json(asdict(profile))
             elif args.action == "list":
                 _json([asdict(item) for item in scanners.list_profiles()])
+            elif args.action == "preset":
+                if args.preset_action == "list":
+                    _json([{"name": "semgrep", "parser": "semgrep", "executable": "semgrep"}])
+                else:
+                    profile = ScannerProfile(
+                        scanner_id="semgrep-default",
+                        name="Semgrep",
+                        parser="semgrep",
+                        command=("semgrep", "scan", "--json", "--quiet", "{project_path}"),
+                        accepted_exit_codes=(0,),
+                        timeout_seconds=300.0,
+                    )
+                    scanners.save(profile)
+                    _json(asdict(profile))
             else:
                 if not scanners.remove(args.scanner_id):
                     raise ValueError(f"unknown scanner: {args.scanner_id}")
