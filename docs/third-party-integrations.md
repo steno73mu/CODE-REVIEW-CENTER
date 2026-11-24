@@ -10,10 +10,10 @@ This distinction is intentional: the scanner projects remain independently insta
 
 | Scanner | Upstream license file | Integration used here | Distribution status |
 |---|---|---|---|
-| Semgrep | [LGPL-2.1](https://github.com/semgrep/semgrep/blob/develop/LICENSE) | External CLI; Semgrep JSON output | Not bundled or vendored |
-| Gitleaks | [MIT](https://github.com/gitleaks/gitleaks/blob/master/LICENSE) | External CLI; redacted JSON output | Not bundled or vendored |
+| Semgrep | [LGPL-2.1](https://github.com/semgrep/semgrep/blob/v1.187.0/LICENSE) | External CLI; Semgrep JSON output | Not bundled or vendored |
+| Gitleaks | [MIT](https://github.com/gitleaks/gitleaks/blob/v8.30.1/LICENSE) | External CLI; redacted JSON output | Not bundled or vendored |
 
-The license labels above describe the upstream repository license files inspected on 2026-11-25. They are not a substitute for checking the exact version and all notices of any binary a user installs. The Gitleaks upstream README currently describes the project as feature-complete with future releases focused on security patches; re-evaluate maintenance and compatibility before depending on new functionality.
+The license labels above reflect the exact upstream license files at the tested tags inspected on 2026-11-25. The project has no Python runtime dependencies and does not bundle either scanner. This source-level check does not audit all notices inside separately installed scanner distributions. The Gitleaks upstream README currently describes the project as feature-complete with future releases focused on security patches; re-evaluate maintenance and compatibility before depending on new functionality.
 
 ## CI integration versions
 
@@ -34,6 +34,5 @@ The synthetic-fixture integration checks passed on GitHub-hosted Ubuntu and Wind
 
 ## Verification still required
 
-- Record the exact Semgrep and Gitleaks versions tested on Linux and Windows.
 - Run the built-in presets against real local repositories and verify report redaction and exit-code handling.
 - Re-check upstream licenses and maintenance status at each release candidate.
