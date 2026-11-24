@@ -9,7 +9,7 @@ import sys
 import uuid
 
 from .configuration import ProviderConfigStore, ProviderProfile, ScannerConfigStore, ScannerProfile
-from .providers import AIReviewClient
+from .providers import AIReviewClient, AIReviewError
 from .application import scan_project
 from .projects import ProjectRegistry
 from .storage import ScanStore
