@@ -329,6 +329,46 @@ def main() -> int:
             )
         notebook.select(findings_tab)
 
+    def review_selected():
+        selection = history_tree.selection()
+        provider = selected_provider()
+        if not selection or provider is None:
+            messagebox.showinfo("AI review", "Select a scan session and an AI reviewer.")
+            return
+        record = history.get_batch(selection[0])
+        if record is None:
+            return
+        from urllib.parse import urlparse
+        import ipaddress
+        host = urlparse(provider.base_url).hostname or ""
+        try:
+            local_provider = ipaddress.ip_address(host).is_loopback
+        except ValueError:
+            local_provider = host.casefold() == "localhost"
+        allow_external = False
+        if not local_provider:
+            allow_external = messagebox.askyesno(
+                "Remote AI provider",
+                "Finding metadata will be sent to this remote provider. Continue?",
+            )
+            if not allow_external:
+                return
+        findings = [Finding(**item) for item in record["findings"]]
+        status_var.set(f"Requesting AI review from {provider.name}…")
+        threading.Thread(
+            target=review_worker,
+            args=(provider, findings, selection[0], allow_external),
+            daemon=True,
+        ).start()
+
+    def review_worker(provider, findings, session_id, allow_external):
+        try:
+            result = AIReviewClient().review_findings(provider, findings, allow_external=allow_external)
+            review_id = history.save_ai_review(session_id, result)
+            events.put(("review_success", review_id, result))
+        except Exception as exc:
+            events.put(("error", type(exc).__name__, str(exc)))
+
     def poll_events():
         try:
             while True:
@@ -342,10 +382,21 @@ def main() -> int:
                     succeeded = sum(item.status.value == "succeeded" for item in batch.jobs)
                     status_var.set(f"Scan saved · {len(batch.findings)} unique findings · {len(batch.correlations)} correlation groups · {succeeded}/{len(batch.jobs)} scanners succeeded")
                     notebook.select(findings_tab)
+                elif event[0] == "review_success":
+                    _, review_id, review = event
+                    status_var.set(f"AI review saved · {review.provider_id}")
+                    window = tk.Toplevel(root)
+                    window.title(f"AI review · {review.model}")
+                    window.geometry("800x600")
+                    review_text = tk.Text(window, wrap="word")
+                    review_text.pack(fill="both", expand=True, padx=10, pady=10)
+                    review_text.insert("1.0", review.content)
+                    review_text.configure(state="disabled")
+                    refresh_history()
                 else:
                     _, error_type, message = event
-                    status_var.set("Scan failed")
-                    messagebox.showerror("Scan failed", f"{error_type}: {message}")
+                    status_var.set("Operation failed")
+                    messagebox.showerror("Operation failed", f"{error_type}: {message}")
         except queue.Empty:
             pass
         root.after(100, poll_events)
