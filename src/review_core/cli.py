@@ -171,7 +171,7 @@ def main(argv: list[str] | None = None) -> int:
                         scanner_id="semgrep-default",
                         name="Semgrep",
                         parser="semgrep",
-                        command=("semgrep", "scan", "--json", "--quiet", "{project_path}"),
+                        command=("semgrep", "scan", "--config", "auto", "--json", "--quiet", "{project_path}"),
                         accepted_exit_codes=(0,),
                         timeout_seconds=300.0,
                     )
