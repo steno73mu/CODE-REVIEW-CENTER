@@ -46,6 +46,24 @@ def main() -> int:
                 f"stderr={semgrep.process_result.stderr[:2000]!r}"
             )
 
+        semgrep_auto = run_scanner(
+            [
+                "semgrep", "scan", "--config", "auto",
+                "--json", "--quiet", "--metrics=off", str(project),
+            ],
+            parser=parse_semgrep,
+            accepted_exit_codes=(0,),
+            timeout_seconds=180,
+            cwd=str(project),
+        )
+        if not semgrep_auto.findings:
+            raise RuntimeError(
+                "Semgrep auto preset did not report the expected fixture finding; "
+                f"exit={semgrep_auto.process_result.returncode}; "
+                f"stdout={semgrep_auto.process_result.stdout[:2000]!r}; "
+                f"stderr={semgrep_auto.process_result.stderr[:2000]!r}"
+            )
+
         test_access_key = "ghp_0123456789abcdef0123456789abcdef0123"
         (project / "credentials.txt").write_text(
             f"AWS_ACCESS_KEY_ID={test_access_key}\n",
