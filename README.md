@@ -31,7 +31,8 @@ This is an original product, not a repackaged scanner or a fork of another revie
 - **Finding triage:** open, accepted, false positive, fixed, or won't-fix, with reviewer notes.
 - **AI review:** OpenAI-compatible Chat Completions providers, local endpoints, environment-variable API key references, explicit remote-provider opt-in.
 - **Reports:** JSON, SARIF 2.1.0, and Markdown exports.
-- **Interfaces:** `crc` CLI and `crc-desktop` Tkinter desktop workspace.\n- **GitHub repositories:** clone and update HTTPS GitHub repositories locally, then analyze them with the same scanner workflow.
+- **Interfaces:** `crc` CLI and `crc-desktop` Tkinter desktop workspace.
+- **GitHub repositories:** clone and update HTTPS GitHub repositories locally, then analyze them with the same scanner workflow.
 - **Built-in presets:** Semgrep and Gitleaks.
 - **Diagnostics:** `crc doctor` checks the local runtime and configured scanner executables without network access.
 
