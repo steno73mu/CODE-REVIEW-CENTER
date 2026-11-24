@@ -7,6 +7,7 @@ from .finding import Finding, FindingSeverity
 from .sarif import parse_sarif
 from .scanning import ScanExecutionError, ScanResult, run_scanner
 from .orchestration import ScanBatchResult, ScanJob, ScanJobResult, ScanStatus, run_scan_batch
+from .storage import ScanStore
 
 __all__ = [
     "EngineExecutionError",
@@ -18,6 +19,7 @@ __all__ = [
     "ScanJob",
     "ScanJobResult",
     "ScanStatus",
+    "ScanStore",
     "ScanResult",
     "FindingSeverity",
     "deduplicate_findings",
