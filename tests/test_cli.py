@@ -55,6 +55,13 @@ class CommandLineTests(unittest.TestCase):
         self.assertEqual(code, 0, output)
         self.assertEqual(json.loads(output)["status"], "completed")
 
+        report_path = self.home / "scan-report.sarif"
+        code, output = self.invoke([
+            "report", "--session", session_id, "--format", "sarif", "--output", str(report_path),
+        ])
+        self.assertEqual(code, 0, output)
+        self.assertEqual(json.loads(report_path.read_text(encoding="utf-8"))["version"], "2.1.0")
+
     def test_rejects_unknown_project_without_running_a_scanner(self):
         code, output = self.invoke(["scan", "--project", "missing"])
         self.assertEqual(code, 2)
