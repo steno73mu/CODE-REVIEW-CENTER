@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import ipaddress
 import json
 import os
+import socket
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import HTTPRedirectHandler, Request, build_opener
@@ -43,6 +44,33 @@ def _is_loopback(url: str) -> bool:
         return host.casefold() == "localhost"
 
 
+def _assert_public_remote_destination(url: str) -> None:
+    parsed = urlparse(url)
+    host = parsed.hostname
+    if not host:
+        raise AIReviewError("remote provider URL must include a hostname")
+    try:
+        address = ipaddress.ip_address(host)
+        addresses = (address,)
+    except ValueError:
+        try:
+            records = socket.getaddrinfo(
+                host,
+                parsed.port or 443,
+                type=socket.SOCK_STREAM,
+            )
+        except OSError:
+            raise AIReviewError("remote provider hostname could not be resolved") from None
+        addresses = tuple(
+            ipaddress.ip_address(record[4][0].split("%", 1)[0])
+            for record in records
+        )
+    if not addresses or any(not address.is_global for address in addresses):
+        raise AIReviewError(
+            "remote provider must resolve only to public network addresses"
+        )
+
+
 class AIReviewClient:
     """Minimal OpenAI-compatible chat client with explicit remote-provider opt-in."""
 
@@ -59,8 +87,10 @@ class AIReviewClient:
             raise AIReviewError("provider profile is disabled")
         if not isinstance(allow_external, bool):
             raise ValueError("allow_external must be a boolean")
-        if not _is_loopback(profile.base_url) and not allow_external:
-            raise AIReviewError("remote provider use requires explicit allow_external=True")
+        if not _is_loopback(profile.base_url):
+            if not allow_external:
+                raise AIReviewError("remote provider use requires explicit allow_external=True")
+            _assert_public_remote_destination(profile.base_url)
 
         normalized_findings = tuple(findings)
         if any(not isinstance(item, Finding) for item in normalized_findings):
