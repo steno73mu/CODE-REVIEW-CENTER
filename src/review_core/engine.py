@@ -133,8 +133,9 @@ def run_engine(
         isinstance(max_output_bytes, bool)
         or not isinstance(max_output_bytes, int)
         or max_output_bytes < 1
+        or max_output_bytes > 64 * 1024 * 1024
     ):
-        raise EngineExecutionError("max_output_bytes must be a positive integer")
+        raise EngineExecutionError("max_output_bytes must be between 1 byte and 64 MiB")
     if cancel_event is not None and not isinstance(cancel_event, threading.Event):
         raise EngineExecutionError("cancel_event must be a threading.Event or None")
 
