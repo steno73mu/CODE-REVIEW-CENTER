@@ -64,7 +64,7 @@ flowchart LR
 - Trusted external-engine process runner using argument arrays (no shell), execution timeouts, and captured diagnostics.
 - Generic scanner invocation that parses stdout into normalized findings and preserves process evidence.
 - Concurrent multi-scanner batches with deterministic result ordering, isolated failures, per-engine timeouts, cooperative cancellation, and aggregate exact deduplication.
-- Transactional SQLite scan history with per-engine outcomes, normalized findings, validated session IDs, and paginated history.
+- Transactional SQLite scan history with per-engine outcomes, normalized findings, validated session IDs, and paginated history.\n- Local project registry with stable IDs, canonical directory paths, duplicate protection, and rename/list/remove operations.
 - Automated Python unit tests and GitHub Actions workflow.
 
 </details>
