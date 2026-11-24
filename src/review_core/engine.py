@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import math
 import os
 import signal
+import shutil
 import subprocess
 import threading
 import time
@@ -91,6 +92,32 @@ class _BoundedPipeReader(threading.Thread):
 
     def text(self) -> str:
         return self.data.decode("utf-8", errors="replace")
+
+
+def _resolve_executable(executable: str, env: Mapping[str, str] | None) -> str:
+    has_path_component = (
+        os.path.isabs(executable)
+        or os.sep in executable
+        or (os.altsep is not None and os.altsep in executable)
+    )
+    if has_path_component:
+        try:
+            resolved = os.path.abspath(os.path.expanduser(executable))
+            if not os.path.isfile(resolved):
+                raise EngineExecutionError("configured analysis engine executable is not a file")
+            return resolved
+        except (OSError, ValueError) as exc:
+            raise EngineExecutionError("could not resolve configured analysis engine executable") from exc
+
+    search_path = (
+        env["PATH"]
+        if env is not None and "PATH" in env
+        else os.environ.get("PATH", os.defpath)
+    )
+    resolved = shutil.which(executable, path=search_path)
+    if resolved is None:
+        raise EngineExecutionError("analysis engine executable was not found on PATH")
+    return os.path.abspath(resolved)
 
 
 def _terminate_process_tree(process: subprocess.Popen) -> None:
@@ -182,6 +209,9 @@ def run_engine(
         if any("\x00" in key or "\x00" in value or "=" in key for key, value in env.items()):
             raise EngineExecutionError("env contains an invalid variable name or value")
 
+    resolved_executable = _resolve_executable(normalized_command[0], env)
+    process_command = (resolved_executable, *normalized_command[1:])
+
     started_at = time.perf_counter()
     try:
         process_options = (
@@ -190,7 +220,7 @@ def run_engine(
             else {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
         )
         process = subprocess.Popen(
-            normalized_command,
+            process_command,
             cwd=cwd,
             env=env,
             shell=False,
