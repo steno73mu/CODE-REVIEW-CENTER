@@ -31,7 +31,7 @@ class CommandLineTests(unittest.TestCase):
 
     def test_project_scanner_scan_and_history_work_as_one_cli_flow(self):
         code, output = self.invoke(["project", "add", "--name", "Demo", "--path", str(self.project)])
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 0, output)
         project_id = json.loads(output)["project_id"]
 
         command = [
@@ -44,14 +44,14 @@ class CommandLineTests(unittest.TestCase):
             "scanner", "add", "--id", "semgrep-local", "--name", "Semgrep local",
             "--parser", "semgrep", "--command-json", json.dumps(command),
         ])
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 0, output)
 
         code, output = self.invoke(["scan", "--project", project_id])
         self.assertEqual(code, 0)
         session_id = json.loads(output)["session_id"]
 
         code, output = self.invoke(["history", "show", session_id])
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 0, output)
         self.assertEqual(json.loads(output)["status"], "completed")
 
     def test_rejects_unknown_project_without_running_a_scanner(self):
