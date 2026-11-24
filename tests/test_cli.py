@@ -117,6 +117,14 @@ class CommandLineTests(unittest.TestCase):
         self.assertIn("python", report["checks"])
         self.assertIn("sqlite", report["checks"])
         self.assertIn("desktop", report["checks"])
+    def test_gitleaks_preset_redacts_and_emits_json_to_stdout(self):
+        code, output = self.invoke(["scanner", "preset", "add", "gitleaks"])
+        self.assertEqual(code, 0, output)
+        profile = json.loads(output)
+        self.assertEqual(profile["parser"], "gitleaks")
+        self.assertIn("--redact=100", profile["command"])
+        self.assertEqual(profile["command"][profile["command"].index("--report-path") + 1], "-")
+        self.assertEqual(profile["accepted_exit_codes"], [0, 1])
 
 if __name__ == "__main__":
     unittest.main()
