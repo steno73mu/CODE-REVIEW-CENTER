@@ -20,6 +20,7 @@ The application owns the workflow and the normalized domain model. External tool
 | Persistence | Transactional SQLite scan history, projects and scanner profiles | CODE-REVIEW-CENTER |
 | Application | Shared project-scan service used by CLI and desktop | CODE-REVIEW-CENTER |
 | Presentation | Local CLI and Tkinter desktop workspace | CODE-REVIEW-CENTER |
+| Reporting | JSON, SARIF 2.1.0 and Markdown export | CODE-REVIEW-CENTER |
 | Presentation | Desktop interface, history and actionable reports | CODE-REVIEW-CENTER |
 
 ## Integration rules
@@ -65,5 +66,5 @@ Each step must have focused tests and a recorded compatibility/licensing review 
 - Scanner profiles invoke only explicitly configured local executables. The launcher is not a security sandbox; do not configure untrusted commands or run arbitrary repository hooks/build scripts.
 - Process output is bounded to 1 MiB per stream by default. History stores normalized findings and process metadata, not raw stdout/stderr.
 - Cancellation terminates the scanner process directly; it does not promise to terminate arbitrary descendant processes spawned by a scanner.
-- Cross-engine semantic correlation, AI provider integration, code-context navigation, report export, and Windows/Linux end-to-end desktop testing remain pending.
+- Correlation is conservative and requires broader real-world fixture validation. Code-context navigation and richer triage workflows remain pending. Linux/Windows automated unit CI is active; full desktop interaction testing on each OS remains pending.
 - The repository has no license file yet; do not assume code reuse or redistribution rights until the owner selects and adds a license.
