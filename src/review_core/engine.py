@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import math
 import os
 import subprocess
+import threading
 import time
 from typing import TypeAlias
 
@@ -35,6 +36,23 @@ class EngineTimeoutError(EngineExecutionError):
         self.stderr = stderr
 
 
+class EngineCancelledError(EngineExecutionError):
+    """Raised when a running analysis engine is cancelled."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        command: tuple[str, ...],
+        stdout: str = "",
+        stderr: str = "",
+    ) -> None:
+        super().__init__(message)
+        self.command = command
+        self.stdout = stdout
+        self.stderr = stderr
+
+
 @dataclass(frozen=True, slots=True)
 class EngineResult:
     """Captured result of one external analysis-engine process."""
@@ -44,6 +62,34 @@ class EngineResult:
     stdout: str
     stderr: str
     duration_seconds: float
+    stdout_truncated: bool = False
+    stderr_truncated: bool = False
+
+
+class _BoundedPipeReader(threading.Thread):
+    def __init__(self, pipe, limit: int) -> None:
+        super().__init__(daemon=True)
+        self.pipe = pipe
+        self.limit = limit
+        self.data = bytearray()
+        self.truncated = False
+
+    def run(self) -> None:
+        try:
+            while True:
+                chunk = self.pipe.read(65536)
+                if not chunk:
+                    break
+                remaining = self.limit - len(self.data)
+                if remaining > 0:
+                    self.data.extend(chunk[:remaining])
+                if len(chunk) > remaining:
+                    self.truncated = True
+        finally:
+            self.pipe.close()
+
+    def text(self) -> str:
+        return self.data.decode("utf-8", errors="replace")
 
 
 def run_engine(
@@ -52,12 +98,15 @@ def run_engine(
     timeout_seconds: float = 300.0,
     cwd: str | os.PathLike[str] | None = None,
     env: Mapping[str, str] | None = None,
+    max_output_bytes: int = 1_048_576,
+    cancel_event: threading.Event | None = None,
 ) -> EngineResult:
-    """Run a trusted executable without a shell and capture its diagnostics.
+    """Run a trusted executable without a shell and bound captured output.
 
     A non-zero exit status is returned as data because scanners commonly use
-    it to report findings. This function is a process launcher, not a sandbox:
-    callers must only invoke trusted, locally installed executables.
+    it to report findings. This is a process launcher, not a sandbox: callers
+    must only invoke trusted, locally installed executables. Each output stream
+    is drained fully but only the first max_output_bytes are retained.
     """
     if (
         isinstance(command, (str, bytes))
@@ -80,6 +129,14 @@ def run_engine(
         or timeout_seconds <= 0
     ):
         raise EngineExecutionError("timeout_seconds must be a positive finite number")
+    if (
+        isinstance(max_output_bytes, bool)
+        or not isinstance(max_output_bytes, int)
+        or max_output_bytes < 1
+    ):
+        raise EngineExecutionError("max_output_bytes must be a positive integer")
+    if cancel_event is not None and not isinstance(cancel_event, threading.Event):
+        raise EngineExecutionError("cancel_event must be a threading.Event or None")
 
     if env is not None:
         if not isinstance(env, Mapping) or any(
@@ -92,45 +149,74 @@ def run_engine(
 
     started_at = time.perf_counter()
     try:
-        completed = subprocess.run(
+        process = subprocess.Popen(
             normalized_command,
             cwd=cwd,
             env=env,
             shell=False,
-            check=False,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=float(timeout_seconds),
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            bufsize=0,
         )
-    except subprocess.TimeoutExpired as exc:
-        raise EngineTimeoutError(
-            f"analysis engine exceeded timeout of {timeout_seconds} seconds",
-            command=normalized_command,
-            timeout_seconds=float(timeout_seconds),
-            stdout=_as_text(exc.stdout),
-            stderr=_as_text(exc.stderr),
-        ) from exc
     except (OSError, ValueError, TypeError) as exc:
-        # Avoid embedding environment values or arbitrary command arguments in
-        # the public diagnostic; callers may include secrets in those values.
         raise EngineExecutionError(
             f"could not execute analysis engine ({type(exc).__name__})"
         ) from exc
 
+    stdout_reader = _BoundedPipeReader(process.stdout, max_output_bytes)
+    stderr_reader = _BoundedPipeReader(process.stderr, max_output_bytes)
+    stdout_reader.start()
+    stderr_reader.start()
+
+    deadline = started_at + float(timeout_seconds)
+    termination: str | None = None
+    while process.poll() is None:
+        if cancel_event is not None and cancel_event.is_set():
+            termination = "cancelled"
+            break
+        if time.perf_counter() >= deadline:
+            termination = "timeout"
+            break
+        time.sleep(0.02)
+
+    if termination is not None:
+        process.terminate()
+        try:
+            process.wait(timeout=1.0)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait()
+    else:
+        process.wait()
+
+    stdout_reader.join()
+    stderr_reader.join()
+    stdout = stdout_reader.text()
+    stderr = stderr_reader.text()
+
+    if termination == "cancelled":
+        raise EngineCancelledError(
+            "analysis engine was cancelled",
+            command=normalized_command,
+            stdout=stdout,
+            stderr=stderr,
+        )
+    if termination == "timeout":
+        raise EngineTimeoutError(
+            f"analysis engine exceeded timeout of {timeout_seconds} seconds",
+            command=normalized_command,
+            timeout_seconds=float(timeout_seconds),
+            stdout=stdout,
+            stderr=stderr,
+        )
+
     return EngineResult(
         command=normalized_command,
-        returncode=completed.returncode,
-        stdout=completed.stdout,
-        stderr=completed.stderr,
+        returncode=process.returncode,
+        stdout=stdout,
+        stderr=stderr,
         duration_seconds=max(0.0, time.perf_counter() - started_at),
+        stdout_truncated=stdout_reader.truncated,
+        stderr_truncated=stderr_reader.truncated,
     )
-
-
-def _as_text(value: str | bytes | None) -> str:
-    if value is None:
-        return ""
-    if isinstance(value, bytes):
-        return value.decode("utf-8", errors="replace")
-    return value
