@@ -104,6 +104,19 @@ class ScanOrchestrationTests(unittest.TestCase):
 
         self.assertEqual(result.jobs[0].status, ScanStatus.CANCELLED)
 
+    def test_parser_exception_text_is_not_exposed_in_scan_result(self):
+        secret = "SENSITIVE-REPORT-CONTENT"
+
+        def unsafe_parser(_report):
+            raise ValueError(secret)
+
+        result = run_scan_batch([
+            ScanJob("parser-error", [sys.executable, "-c", "print('report')"], unsafe_parser)
+        ])
+
+        self.assertEqual(result.jobs[0].status, ScanStatus.FAILED)
+        self.assertNotIn(secret, result.jobs[0].error)
+
 
 if __name__ == "__main__":
     unittest.main()
