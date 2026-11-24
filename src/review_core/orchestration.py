@@ -81,7 +81,7 @@ def _execute_job(job: ScanJob, cancel_event: threading.Event) -> ScanJobResult:
         return ScanJobResult(
             job_id=job.job_id,
             status=ScanStatus.FAILED,
-            error=str(exc),
+            error=f"scanner execution failed ({type(exc).__name__})",
         )
     except Exception as exc:
         # A faulty parser must not erase results from other independent engines.
