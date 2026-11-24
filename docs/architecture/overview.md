@@ -15,7 +15,11 @@ The application owns the workflow and the normalized domain model. External tool
 | Correlation | Exact deduplication and later cross-engine correlation | CODE-REVIEW-CENTER |
 | Engine adapters | Start tools, validate exit status, collect output and metadata | CODE-REVIEW-CENTER |
 | Analysis engines | SAST, secret detection, dependency and AI review | External tools or providers, replaceable |
-| Orchestration | Concurrent scanner batches, per-engine status, timeout, cooperative cancellation and aggregate evidence | CODE-REVIEW-CENTER |
+| Orchestration | Concurrent scanner batches, per-engine status, timeout, cancellation, bounded output and aggregate evidence | CODE-REVIEW-CENTER |
+| Configuration | Validated scanner profiles and local project registry | CODE-REVIEW-CENTER |
+| Persistence | Transactional SQLite scan history, projects and scanner profiles | CODE-REVIEW-CENTER |
+| Application | Shared project-scan service used by CLI and desktop | CODE-REVIEW-CENTER |
+| Presentation | Local CLI and Tkinter desktop workspace | CODE-REVIEW-CENTER |
 | Presentation | Desktop interface, history and actionable reports | CODE-REVIEW-CENTER |
 
 ## Integration rules
@@ -47,9 +51,18 @@ The core currently uses Python 3.11+ and the standard library only.
 
 1. Establish and test the domain model and SARIF normalization. **Implemented first slice.**
 2. Add native JSON adapters for scanner formats not adequately represented by SARIF. **Semgrep and Gitleaks implemented.**
-3. Define scan/project persistence and engine execution contracts.
-4. Add cross-engine correlation with explainable matching evidence.
-5. Add provider configuration and AI review orchestration.
-6. Build the desktop workflow and reporting experience.
+3. Define scan/project persistence and engine execution contracts. **Implemented: SQLite history, project registry, scanner profiles.**
+4. Add cross-engine correlation with explainable matching evidence. **Pending.**
+5. Add provider configuration and AI review orchestration. **Pending.**
+6. Build the desktop workflow and reporting experience. **First local desktop slice implemented; advanced triage/reporting pending.**
 
 Each step must have focused tests and a recorded compatibility/licensing review where third-party components are involved.
+
+## Current limitations
+
+- The desktop UI is an initial operational workspace, not a polished release UI. Tkinter must be available on the host (on some Linux distributions install the matching `python3-tk` package).
+- Scanner profiles invoke only explicitly configured local executables. The launcher is not a security sandbox; do not configure untrusted commands or run arbitrary repository hooks/build scripts.
+- Process output is bounded to 1 MiB per stream by default. History stores normalized findings and process metadata, not raw stdout/stderr.
+- Cancellation terminates the scanner process directly; it does not promise to terminate arbitrary descendant processes spawned by a scanner.
+- Cross-engine semantic correlation, AI provider integration, code-context navigation, report export, and Windows/Linux end-to-end desktop testing remain pending.
+- The repository has no license file yet; do not assume code reuse or redistribution rights until the owner selects and adds a license.
