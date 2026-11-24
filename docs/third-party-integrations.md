@@ -15,6 +15,15 @@ This distinction is intentional: the scanner projects remain independently insta
 
 The license labels above describe the upstream repository license files inspected on 2026-11-25. They are not a substitute for checking the exact version and all notices of any binary a user installs. The Gitleaks upstream README currently describes the project as feature-complete with future releases focused on security patches; re-evaluate maintenance and compatibility before depending on new functionality.
 
+## CI integration versions
+
+The cross-platform scanner integration workflow currently pins and validates:
+
+- **Semgrep 1.187.0** — local YAML rule against a generated Python fixture.
+- **Gitleaks 8.30.1** — official release archives with SHA-256 checksum verification; a synthetic GitHub token is detected and its value is confirmed absent from stdout and normalized findings.
+
+Both integration checks passed on GitHub-hosted Ubuntu and Windows runners. These are smoke tests of the CLI adapters and redaction boundary, not a substitute for validating Semgrep's built-in `--config auto` preset against a representative repository.
+
 ## Obligations and release gates
 
 - No scanner source files, libraries, or executable binaries are copied into this repository.
