@@ -38,10 +38,13 @@ class ScannerProfile:
             or any(not isinstance(part, str) or not part for part in self.command)
         ):
             raise ValueError("command must be a non-empty argument sequence, not a shell string")
-        if any("{" in part or "}" in part for part in self.command if part not in _ALLOWED_PLACEHOLDERS):
-            raise ValueError("command contains an unsupported placeholder")
-        if any(part in _ALLOWED_PLACEHOLDERS for part in self.command[1:]):
-            pass
+        for index, part in enumerate(self.command):
+            if "\x00" in part:
+                raise ValueError("command arguments must not contain NUL characters")
+            if part.startswith("{") and part.endswith("}") and part not in _ALLOWED_PLACEHOLDERS:
+                raise ValueError("command contains an unsupported placeholder")
+            if index == 0 and part in _ALLOWED_PLACEHOLDERS:
+                raise ValueError("the executable cannot be a project-path placeholder")
         if (
             isinstance(self.accepted_exit_codes, (str, bytes))
             or not isinstance(self.accepted_exit_codes, (tuple, list))
