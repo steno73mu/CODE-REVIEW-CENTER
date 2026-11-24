@@ -14,6 +14,7 @@ from .application import scan_project
 from .projects import ProjectRegistry
 from .storage import ScanStore
 from .finding import Finding
+from .reports import render_report, write_report
 
 
 def data_directory() -> Path:
@@ -77,6 +78,12 @@ def _parser() -> argparse.ArgumentParser:
     scan = sub.add_parser("scan", help="run all enabled scanners for a registered project")
     scan.add_argument("--project", required=True)
     scan.add_argument("--max-workers", type=int, default=4)
+
+    report = sub.add_parser("report", help="export a saved scan as JSON, SARIF, or Markdown")
+    report.add_argument("--session", required=True)
+    report.add_argument("--format", choices=("json", "sarif", "markdown"), required=True)
+    report.add_argument("--output", required=True)
+    report.add_argument("--force", action="store_true", help="replace an existing output file")
 
     history = sub.add_parser("history", help="inspect saved scan sessions")
     history_sub = history.add_subparsers(dest="action", required=True)
@@ -215,6 +222,14 @@ def main(argv: list[str] | None = None) -> int:
             })
             if not any(item.status.value == "succeeded" for item in batch.jobs):
                 return 1
+
+        elif args.resource == "report":
+            session = history.get_batch(args.session)
+            if session is None:
+                raise ValueError(f"unknown scan session: {args.session}")
+            rendered = render_report(session, args.format)
+            target = write_report(args.output, rendered, overwrite=args.force)
+            _json({"session_id": args.session, "format": args.format, "path": str(target)})
 
         elif args.resource == "history":
             if args.action == "list":
