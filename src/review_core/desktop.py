@@ -285,7 +285,7 @@ def main() -> int:
                     render_findings(batch.findings)
                     refresh_history()
                     succeeded = sum(item.status.value == "succeeded" for item in batch.jobs)
-                    status_var.set(f"Scan saved · {len(batch.findings)} unique findings · {succeeded}/{len(batch.jobs)} scanners succeeded")
+                    status_var.set(f"Scan saved · {len(batch.findings)} unique findings · {len(batch.correlations)} correlation groups · {succeeded}/{len(batch.jobs)} scanners succeeded")
                     notebook.select(findings_tab)
                 else:
                     _, error_type, message = event
