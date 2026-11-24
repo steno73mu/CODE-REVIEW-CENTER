@@ -94,6 +94,7 @@ Requirements: Python 3.11 or newer.
 git clone https://github.com/steno73mu/CODE-REVIEW-CENTER.git
 cd CODE-REVIEW-CENTER
 python -m pip install .
+crc doctor
 python -m unittest discover -s tests -v
 ```
 
