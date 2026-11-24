@@ -131,6 +131,13 @@ class ScanOrchestrationTests(unittest.TestCase):
         self.assertEqual(len(result.correlations), 1)
         self.assertEqual(len(result.correlations[0].findings), 2)
 
+    def test_preserves_process_evidence_when_scanner_exit_code_is_unaccepted(self):
+        result = run_scan_batch([
+            ScanJob("nonzero", [sys.executable, "-c", "import sys; print('report'); sys.exit(7)"], parse_semgrep)
+        ])
+        self.assertEqual(result.jobs[0].status, ScanStatus.FAILED)
+        self.assertEqual(result.jobs[0].process_result.returncode, 7)
+
 
 if __name__ == "__main__":
     unittest.main()
