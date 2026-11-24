@@ -61,7 +61,7 @@ flowchart LR
 - Native Semgrep JSON adapter.
 - Native Gitleaks JSON adapter, excluding secret values and matched source text.
 - Deterministic exact-fingerprint deduplication.
-- Trusted external-engine process runner using argument arrays (no shell), execution timeouts, and captured diagnostics.\n- Generic scanner invocation that parses stdout into normalized findings and preserves process evidence.
+- Trusted external-engine process runner using argument arrays (no shell), execution timeouts, and captured diagnostics.\n- Generic scanner invocation that parses stdout into normalized findings and preserves process evidence.\n- Concurrent multi-scanner batches with deterministic result ordering, isolated failures, per-engine timeouts, cooperative cancellation, and aggregate exact deduplication.
 - Automated Python unit tests and GitHub Actions workflow.
 
 </details>
