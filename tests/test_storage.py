@@ -88,6 +88,18 @@ class ScanStoreTests(unittest.TestCase):
         self.assertEqual(len(loaded["correlations"]), 1)
         self.assertEqual(loaded["correlations"][0]["evidence"][0]["method"], "same_location_and_message")
 
+    def test_persists_ai_review_result_against_scan_session(self):
+        from review_core.providers import AIReviewResult
+
+        self.store.save_batch("scan-ai-review", self._batch())
+        review = AIReviewResult("local-model", "local-review-model", "Review summary")
+        review_id = self.store.save_ai_review("scan-ai-review", review)
+        loaded = self.store.get_ai_reviews("scan-ai-review")
+
+        self.assertEqual(len(loaded), 1)
+        self.assertEqual(loaded[0]["review_id"], review_id)
+        self.assertEqual(loaded[0]["content"], "Review summary")
+
 
 if __name__ == "__main__":
     unittest.main()
