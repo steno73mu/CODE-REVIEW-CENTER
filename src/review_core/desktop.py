@@ -17,7 +17,9 @@ def main() -> int:
         ) from exc
 
     from .cli import data_directory
-    from .configuration import ScannerConfigStore, ScannerProfile
+    from .configuration import ProviderConfigStore, ProviderProfile, ScannerConfigStore, ScannerProfile
+    from .providers import AIReviewClient
+    from .finding import Finding
     from .application import scan_project
     from .projects import ProjectRegistry
     from .storage import ScanStore
@@ -26,6 +28,7 @@ def main() -> int:
     database = data_directory() / "review.sqlite3"
     projects = ProjectRegistry(database)
     scanners = ScannerConfigStore(database)
+    providers = ProviderConfigStore(database)
     history = ScanStore(database)
 
     root = tk.Tk()
@@ -35,6 +38,7 @@ def main() -> int:
 
     project_rows = []
     scanner_rows = []
+    provider_rows = []
     cancellation = threading.Event()
     events: queue.Queue = queue.Queue()
 
@@ -70,6 +74,15 @@ def main() -> int:
     ttk.Button(scanner_buttons, text="Add profile", command=lambda: add_scanner()).pack(side="left")
     ttk.Button(scanner_buttons, text="Remove", command=lambda: remove_scanner()).pack(side="left", padx=4)
 
+    ttk.Separator(sidebar).pack(fill="x", pady=12)
+    ttk.Label(sidebar, text="AI REVIEWERS", font=("TkDefaultFont", 10, "bold")).pack(anchor="w")
+    provider_list = tk.Listbox(sidebar, height=6, exportselection=False)
+    provider_list.pack(fill="x", pady=(4, 6))
+    provider_buttons = ttk.Frame(sidebar)
+    provider_buttons.pack(fill="x")
+    ttk.Button(provider_buttons, text="Add provider", command=lambda: add_provider()).pack(side="left")
+    ttk.Button(provider_buttons, text="Remove", command=lambda: remove_provider()).pack(side="left", padx=4)
+
     actions = ttk.Frame(workspace)
     actions.pack(fill="x", pady=(0, 8))
     scan_button = ttk.Button(actions, text="Run review", command=lambda: start_scan())
@@ -92,6 +105,9 @@ def main() -> int:
     finding_tree.pack(fill="both", expand=True)
 
     history_columns = ("session_id", "created_at", "status", "duration_seconds")
+    history_actions = ttk.Frame(history_tab)
+    history_actions.pack(fill="x", pady=(0, 6))
+    ttk.Button(history_actions, text="AI review selected session", command=lambda: review_selected()).pack(side="left")
     history_tree = ttk.Treeview(history_tab, columns=history_columns, show="headings", height=12)
     for column, width in (("session_id", 280), ("created_at", 240), ("status", 120), ("duration_seconds", 120)):
         history_tree.heading(column, text=column.replace("_", " ").title())
