@@ -147,7 +147,7 @@ Supported report formats are JSON, SARIF 2.1.0, and Markdown. Existing output fi
 
 ## Security boundaries
 
-- The scanner launcher is **not a sandbox**. Configure only trusted local executables. Bare executable names are resolved from absolute `PATH` directories before entering the project directory; relative `PATH` entries are ignored. Timeouts and cancellation terminate the scanner process tree (POSIX process groups; Windows `taskkill /T`).
+- The scanner launcher is **not a sandbox**. Configure only trusted local executables. Bare executable names are resolved from absolute `PATH` directories before entering the project directory; relative `PATH` entries are ignored, and scanner executables inside the analyzed project are rejected. Timeouts and cancellation terminate the scanner process tree (POSIX process groups; Windows `taskkill /T`).
 - Output capture is 1 MiB per stream by default (hard maximum 64 MiB); raw stdout/stderr are not persisted.
 - Gitleaks preset requests 100% redaction, and the adapter excludes secret and matched-text fields from normalized findings.
 - Remote AI review requires explicit opt-in, HTTPS, public destination addresses, and bounded request/response sizes. API keys stay in environment variables. This is not a substitute for network egress controls.
