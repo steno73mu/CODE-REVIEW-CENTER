@@ -18,6 +18,7 @@ Do not include live credentials, private source code, or personal data in a repo
 
 - The scanner process launcher is not a sandbox. Only trusted, locally installed scanner executables may be configured.
 - Timeouts and cancellation terminate scanner child processes (POSIX process groups; Windows `taskkill /T`), but do not provide filesystem, network, or privilege isolation.
+- Bare scanner executable names are resolved from absolute `PATH` directories before the child process enters the project directory; relative `PATH` entries are ignored to avoid resolving scanner names from the scanned repository.
 - The application does not intentionally run repository scripts, hooks, or build commands.
 - Scanner stdout/stderr capture is bounded; raw scanner output is not persisted by default.
 - Gitleaks secret values and matched source text are not copied into normalized findings.
