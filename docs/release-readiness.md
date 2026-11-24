@@ -21,7 +21,7 @@ The current branch is a functional MVP, not a production release. Complete this 
 - Scanner processes are not sandboxed. Only trusted installed executables may be configured.
 - Timeout and cancellation terminate the scanner process tree (POSIX process groups; Windows `taskkill /T`). The launcher remains a process-lifecycle control, not an OS sandbox.
 - Cross-engine correlation is conservative and needs a larger labeled fixture corpus before being used as a definitive duplicate classifier.
-- AI review transmits finding metadata, including scanner messages, to the selected provider. Source files and code excerpts are not uploaded by the current implementation.
+- AI review transmits finding metadata, including scanner messages, to the selected provider. Literal and DNS-resolved non-public addresses are rejected, but DNS rebinding is not fully prevented; network egress controls remain the stronger boundary. Source files and code excerpts are not uploaded by the current implementation.
 - The desktop UI is an initial operational workspace and has not yet undergone manual cross-platform usability testing.
 
 Do not remove these limitations from the documentation until the corresponding evidence exists.
