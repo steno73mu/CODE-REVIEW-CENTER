@@ -160,7 +160,7 @@ This is a functional MVP in early development, not yet a production release. CI 
 
 **Licensing:** no repository license has been selected yet. Public visibility does not grant permission to reuse or redistribute this project's code. A license decision and third-party license/notice audit are required before a formal open-source release.
 
-See [docs/release-readiness.md](docs/release-readiness.md) for the full release checklist.
+See [docs/release-readiness.md](docs/release-readiness.md) for the full release checklist and [docs/third-party-integrations.md](docs/third-party-integrations.md) for upstream scanner licensing and integration boundaries.
 
 ## Contributing
 
