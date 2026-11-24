@@ -5,6 +5,9 @@ import json
 from pathlib import Path
 import re
 import sqlite3
+import uuid
+
+from .providers import AIReviewResult
 from typing import Any
 
 from .finding import Finding
@@ -55,6 +58,14 @@ class ScanStore:
                     fingerprint TEXT NOT NULL,
                     payload TEXT NOT NULL,
                     PRIMARY KEY (session_id, fingerprint)
+                );
+                CREATE TABLE IF NOT EXISTS ai_reviews (
+                    review_id TEXT PRIMARY KEY,
+                    session_id TEXT NOT NULL REFERENCES scan_sessions(session_id) ON DELETE CASCADE,
+                    provider_id TEXT NOT NULL,
+                    model TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    created_at TEXT NOT NULL
                 );
                 CREATE TABLE IF NOT EXISTS scan_correlations (
                     session_id TEXT NOT NULL REFERENCES scan_sessions(session_id) ON DELETE CASCADE,
@@ -209,3 +220,35 @@ class ScanStore:
                 (limit, offset),
             ).fetchall()
         return [dict(row) | {"cancelled": bool(row["cancelled"])} for row in rows]
+
+
+    def save_ai_review(self, session_id: str, review: AIReviewResult) -> str:
+        self._validate_session_id(session_id)
+        if not isinstance(review, AIReviewResult):
+            raise TypeError("review must be an AIReviewResult")
+        review_id = str(uuid.uuid4())
+        created_at = datetime.now(timezone.utc).isoformat()
+        with self._connect() as connection:
+            exists = connection.execute(
+                "SELECT 1 FROM scan_sessions WHERE session_id = ?",
+                (session_id,),
+            ).fetchone()
+            if exists is None:
+                raise ValueError(f"unknown scan session: {session_id}")
+            connection.execute(
+                """
+                INSERT INTO ai_reviews (review_id, session_id, provider_id, model, content, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (review_id, session_id, review.provider_id, review.model, review.content, created_at),
+            )
+        return review_id
+
+    def get_ai_reviews(self, session_id: str) -> list[dict[str, Any]]:
+        self._validate_session_id(session_id)
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT * FROM ai_reviews WHERE session_id = ? ORDER BY created_at, review_id",
+                (session_id,),
+            ).fetchall()
+        return [dict(row) for row in rows]
