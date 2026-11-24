@@ -5,7 +5,18 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "code-review-center-core"
 version = "0.1.0"
-description = "Original normalization core for CODE-REVIEW-CENTER"
+description = "Local-first multi-engine code review workspace"
+readme = "README.md"
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: X11 Applications",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Quality Assurance",
+]
 requires-python = ">=3.11"
 dependencies = []
 
