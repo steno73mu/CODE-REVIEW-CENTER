@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 
 from review_core.adapters import parse_gitleaks, parse_semgrep
-from review_core.scanning import run_scanner
+from review_core.scanning import ScanExecutionError, run_scanner
 
 
 def main() -> int:
@@ -46,16 +46,27 @@ def main() -> int:
                 f"stderr={semgrep.process_result.stderr[:2000]!r}"
             )
 
-        semgrep_auto = run_scanner(
-            [
-                "semgrep", "scan", "--config", "auto",
-                "--json", "--quiet", "--metrics=off", str(project),
-            ],
-            parser=parse_semgrep,
-            accepted_exit_codes=(0,),
-            timeout_seconds=180,
-            cwd=str(project),
-        )
+        try:
+            semgrep_auto = run_scanner(
+                [
+                    "semgrep", "scan", "--config", "auto",
+                    "--json", "--quiet", "--metrics=off", str(project),
+                ],
+                parser=parse_semgrep,
+                accepted_exit_codes=(0,),
+                timeout_seconds=180,
+                cwd=str(project),
+            )
+        except ScanExecutionError as error:
+            result = error.process_result
+            if result is None:
+                raise
+            raise RuntimeError(
+                "Semgrep auto exited with "
+                f"{result.returncode}; "
+                f"stdout={result.stdout[:4000]!r}; "
+                f"stderr={result.stderr[:4000]!r}"
+            ) from error
         if not semgrep_auto.findings:
             raise RuntimeError(
                 "Semgrep auto preset did not report the expected fixture finding; "
