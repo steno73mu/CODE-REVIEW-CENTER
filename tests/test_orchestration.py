@@ -28,7 +28,7 @@ class ScanOrchestrationTests(unittest.TestCase):
     def test_runs_multiple_scanners_concurrently_and_preserves_job_order(self):
         jobs = [
             ScanJob("semgrep", [sys.executable, "-c", "import sys,time; time.sleep(.15); print(sys.argv[1])", _semgrep_report("a.py")], parse_semgrep),
-            ScanJob("second", [sys.executable, "-c", "print('{}')"], parse_semgrep),
+            ScanJob("second", [sys.executable, "-c", "print('{\"results\": []}')"], parse_semgrep),
         ]
         started = time.monotonic()
         result = run_scan_batch(jobs, max_workers=2)
@@ -41,7 +41,7 @@ class ScanOrchestrationTests(unittest.TestCase):
     def test_isolates_one_scanner_failure_and_returns_other_results(self):
         jobs = [
             ScanJob("bad", ["__crc_missing_scanner__"], parse_semgrep),
-            ScanJob("good", [sys.executable, "-c", "print('{}')"], parse_semgrep),
+            ScanJob("good", [sys.executable, "-c", "print('{\"results\": []}')"], parse_semgrep),
         ]
         result = run_scan_batch(jobs, max_workers=2)
 
@@ -63,13 +63,13 @@ class ScanOrchestrationTests(unittest.TestCase):
     def test_cancellation_prevents_not_yet_started_jobs(self):
         cancel = threading.Event()
         cancel.set()
-        jobs = [ScanJob("one", [sys.executable, "-c", "print('{}')"], parse_semgrep)]
+        jobs = [ScanJob("one", [sys.executable, "-c", "print('{\"results\": []}')"], parse_semgrep)]
         result = run_scan_batch(jobs, cancel_event=cancel)
 
         self.assertEqual(result.jobs[0].status, ScanStatus.CANCELLED)
 
     def test_rejects_duplicate_ids_and_invalid_worker_count(self):
-        job = ScanJob("same", [sys.executable, "-c", "print('{}')"], parse_semgrep)
+        job = ScanJob("same", [sys.executable, "-c", "print('{\"results\": []}')"], parse_semgrep)
         with self.assertRaises(ValueError):
             run_scan_batch([job, job])
         with self.assertRaises(ValueError):
@@ -78,7 +78,7 @@ class ScanOrchestrationTests(unittest.TestCase):
     def test_marks_job_timeout_without_aborting_batch(self):
         jobs = [
             ScanJob("slow", [sys.executable, "-c", "import time; time.sleep(2)"], parse_semgrep, timeout_seconds=.05),
-            ScanJob("fast", [sys.executable, "-c", "print('{}')"], parse_semgrep),
+            ScanJob("fast", [sys.executable, "-c", "print('{\"results\": []}')"], parse_semgrep),
         ]
         result = run_scan_batch(jobs, max_workers=2)
 
