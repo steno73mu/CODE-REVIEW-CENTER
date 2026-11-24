@@ -184,6 +184,22 @@ def main(argv: list[str] | None = None) -> int:
         if args.resource == "project":
             if args.action == "add":
                 _json(asdict(projects.register(args.name, args.path)))
+            elif args.action == "clone":
+                checkout = clone_github_repository(args.url, directory / "repositories", branch=args.branch)
+                name = args.name or Path(validate_github_url(args.url)).stem
+                try:
+                    project = projects.register(name, checkout)
+                except (ValueError, OSError):
+                    import shutil
+                    shutil.rmtree(checkout, ignore_errors=True)
+                    raise
+                _json({**asdict(project), "source_url": args.url, "branch": args.branch})
+            elif args.action == "update":
+                project = projects.get(args.project_id)
+                if project is None:
+                    raise ValueError(f"unknown project: {args.project_id}")
+                update_github_repository(project.path)
+                _json({"updated": project.project_id, "name": project.name, "path": project.path})
             elif args.action == "list":
                 _json([asdict(item) for item in projects.list_projects()])
             else:
