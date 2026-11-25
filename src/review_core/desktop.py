@@ -840,11 +840,12 @@ def main() -> int:
         ttk.Label(chat_outer, textvariable=chat_status, style="Muted.TLabel").pack(anchor="w", pady=(7, 0))
         send_button = ttk.Button(chat_actions, text="Send", style="Accent.TButton")
         send_button.pack(anchor="n")
-        ttk.Button(
+        clear_chat_button = ttk.Button(
             chat_actions,
             text="New chat",
             command=lambda: clear_provider_chat(key, chat_view, chat_status),
-        ).pack(anchor="n", pady=(7, 0))
+        )
+        clear_chat_button.pack(anchor="n", pady=(7, 0))
 
         chat_windows[key] = {
             "window": window,
@@ -852,6 +853,7 @@ def main() -> int:
             "input": chat_input,
             "status": chat_status,
             "send": send_button,
+            "clear": clear_chat_button,
         }
 
         def render_chat():
@@ -879,6 +881,8 @@ def main() -> int:
             previous = history.get_ai_conversation(session_id, provider_id)
             request_messages = previous[-40:] + [{"role": "user", "content": message}]
             send_button.configure(state="disabled")
+            clear_chat_button.configure(state="disabled")
+            chat_input.configure(state="disabled")
             chat_status.set(f"Sending to {provider.name}…")
             status_var.set(f"Reviewer chat · {provider.name}")
             threading.Thread(
@@ -977,21 +981,27 @@ def main() -> int:
                                 chat_view.insert("end", item["content"] + "\n\n")
                             chat_view.configure(state="disabled")
                             chat_view.see("end")
+                            entry["input"].configure(state="normal")
                             entry["input"].delete("1.0", "end")
                             entry["send"].configure(state="normal")
+                            entry["clear"].configure(state="normal")
                             entry["status"].set("Reply saved on this device.")
                         status_var.set(f"Chat reply · {result.provider_id}")
-                    except (ValueError, TypeError, OSError) as exc:
+                    except Exception as exc:
                         entry = chat_windows.get(key)
                         if entry is not None:
+                            entry["input"].configure(state="normal")
                             entry["send"].configure(state="normal")
+                            entry["clear"].configure(state="normal")
                             entry["status"].set("Could not save this chat reply.")
                         messagebox.showerror("Reviewer chat", str(exc))
                 elif event[0] == "chat_error":
                     _, key, error_type, message = event
                     entry = chat_windows.get(key)
                     if entry is not None:
+                        entry["input"].configure(state="normal")
                         entry["send"].configure(state="normal")
+                        entry["clear"].configure(state="normal")
                         entry["status"].set("The request failed; your message is still in the box.")
                     status_var.set("Reviewer chat failed")
                     messagebox.showerror("Reviewer chat", f"{error_type}: {message}")
