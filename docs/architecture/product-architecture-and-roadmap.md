@@ -109,7 +109,7 @@ Show results in the app regardless of publication choice. On the completed repor
 
 ### 5.5 AI, NVIDIA API, and privacy
 
-NVIDIA NIM is the required first remote model-provider integration for the owner's workflow. NVIDIA documents an OpenAI-compatible Chat Completions endpoint at `https://integrate.api.nvidia.com/v1/chat/completions`; model IDs remain configurable and must be checked against NVIDIA's current catalog. The existing generic OpenAI-compatible provider can be reused only after an end-to-end NVIDIA API test confirms authentication, request shape, response parsing, limits, and errors.
+NVIDIA NIM is the required first remote model-provider integration for the owner's workflow. NVIDIA documents an OpenAI-compatible Chat Completions endpoint at `https://integrate.api.nvidia.com/v1/chat/completions`; model IDs remain configurable and must be checked against NVIDIA's current catalog. A first-class NVIDIA NIM setup preset now pre-fills the official endpoint, a configurable catalog model, and the NVIDIA_API_KEY environment-variable name. It reuses the OpenAI-compatible client; an end-to-end NVIDIA API test must still confirm authentication, request shape, response parsing, limits, and errors.
 
 For the downloadable product, users enter their own NVIDIA API key and select a model. No key is embedded in the application or stored in project files, scan history, or logs. Use the operating system credential store where available. The provider panel shows which model/provider is selected and whether the endpoint is local or remote.
 
