@@ -357,6 +357,88 @@ def main() -> int:
             marker = "●" if item.enabled else "○"
             provider_list.insert("end", f"{marker} {item.name}  [{item.model}]")
 
+    def refresh_integrations():
+        import shutil
+        from urllib.parse import urlparse
+
+        configured_scanners = {item.scanner_id: item for item in scanner_rows}
+        for preset_name, panel in scanner_integration_panels.items():
+            expected = create_scanner_preset(preset_name)
+            profile = configured_scanners.get(expected.scanner_id)
+            if profile is None:
+                panel["status"].set("Not configured")
+                panel["detail"].set(f"Requires the {expected.command[0]} command on this computer.")
+                panel["action"].configure(
+                    text="Add preset",
+                    command=lambda name=preset_name: toggle_scanner_preset(name),
+                )
+                continue
+            executable = profile.command[0]
+            present = bool(shutil.which(executable) or Path(executable).is_file())
+            if not profile.enabled:
+                panel["status"].set("Configured · disabled")
+            else:
+                panel["status"].set("Ready" if present else "CLI not found")
+            command = " ".join(profile.command)
+            panel["detail"].set(
+                f"Output: {profile.parser.upper()} · Timeout: {profile.timeout_seconds:g}s\\n"
+                f"Command: {command}"
+            )
+            panel["action"].configure(
+                text="Remove preset",
+                command=lambda name=preset_name: toggle_scanner_preset(name),
+            )
+
+        for tab_id in reviewer_panel_tabs.tabs():
+            reviewer_panel_tabs.forget(tab_id)
+        if not provider_rows:
+            reviewer_panel_tabs.add(reviewer_empty, text="Getting started")
+            return
+        for profile in provider_rows:
+            panel = ttk.Frame(reviewer_panel_tabs, padding=18)
+            reviewer_panel_tabs.add(panel, text=profile.name)
+            host = urlparse(profile.base_url).hostname or profile.base_url
+            is_local = host.casefold() in {"localhost", "127.0.0.1", "::1"}
+            endpoint_type = "Local endpoint" if is_local else "Remote endpoint"
+            key_status = ""
+            if profile.api_key_env:
+                key_status = (
+                    f" · {profile.api_key_env} available"
+                    if os.environ.get(profile.api_key_env)
+                    else f" · set {profile.api_key_env} before use"
+                )
+            ttk.Label(panel, text=profile.name, style="PageTitle.TLabel").pack(anchor="w")
+            ttk.Label(
+                panel,
+                text=("Enabled" if profile.enabled else "Disabled") + f" · {endpoint_type}{key_status}",
+                style="Section.TLabel",
+            ).pack(anchor="w", pady=(12, 5))
+            ttk.Label(panel, text=f"Model: {profile.model}", style="Muted.TLabel").pack(anchor="w")
+            ttk.Label(panel, text=f"Endpoint: {profile.base_url}", style="Muted.TLabel").pack(anchor="w", pady=(4, 0))
+            ttk.Button(
+                panel,
+                text="Open chat for selected review",
+                style="Accent.TButton",
+                command=lambda provider_id=profile.provider_id: open_provider_chat(provider_id),
+            ).pack(anchor="w", pady=(16, 0))
+
+    def toggle_scanner_preset(preset_name):
+        try:
+            profile = create_scanner_preset(preset_name)
+            existing = scanners.get(profile.scanner_id)
+            if existing is not None:
+                if not messagebox.askyesno("Scanner preset", f"Remove the {profile.name} profile?"):
+                    return
+                scanners.remove(profile.scanner_id)
+                status_var.set(f"{profile.name} profile removed")
+            else:
+                scanners.save(profile)
+                status_var.set(f"{profile.name} preset added")
+            refresh_scanners()
+            refresh_integrations()
+        except (ValueError, TypeError) as exc:
+            messagebox.showerror("Scanner preset", str(exc))
+
     def refresh_history():
         for item in history_tree.get_children():
             history_tree.delete(item)
@@ -437,15 +519,8 @@ def main() -> int:
             "Scanner preset",
             "Choose: semgrep, gitleaks, trivy, or osv-scanner",
         )
-        if not preset_name:
-            return
-        try:
-            profile = create_scanner_preset(preset_name)
-            scanners.save(profile)
-            refresh_scanners()
-            status_var.set(f"{profile.name} preset added")
-        except (ValueError, TypeError) as exc:
-            messagebox.showerror("Scanner preset", str(exc))
+        if preset_name:
+            toggle_scanner_preset(preset_name)
 
     def add_scanner():
         scanner_id = simpledialog.askstring("Scanner profile", "Profile ID (e.g. semgrep-local):")
