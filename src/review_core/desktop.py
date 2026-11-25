@@ -29,6 +29,8 @@ def main() -> int:
     )
     from .providers import AIReviewClient
     from .review_agents import REVIEW_AGENTS
+    from .review_agent_runner import run_agent_review
+    from .agent_review_store import AgentReviewStore
     from .finding import Finding
     from .application import scan_project
     from .projects import ProjectRegistry
@@ -43,6 +45,7 @@ def main() -> int:
     providers = ProviderConfigStore(database)
     history = ScanStore(database)
     triage_store = TriageStore(database)
+    agent_review_store = AgentReviewStore(database)
 
     root = tk.Tk()
     root.title("CODE-REVIEW-CENTER")
@@ -146,6 +149,8 @@ def main() -> int:
     current_session_id = None
     current_findings = []
     chat_windows = {}
+    agent_review_buttons = {}
+    agent_review_busy = False
 
 
     project_metric_var = tk.StringVar(value="0")
@@ -259,8 +264,10 @@ def main() -> int:
     notebook.pack(fill="both", expand=True)
     findings_tab = ttk.Frame(notebook, padding=10)
     history_tab = ttk.Frame(notebook, padding=10)
+    agent_history_tab = ttk.Frame(notebook, padding=10)
     notebook.add(findings_tab, text="Findings")
     notebook.add(history_tab, text="Review history")
+    notebook.add(agent_history_tab, text="Agent reports")
 
     integrations_tab = ttk.Frame(notebook, padding=10)
     notebook.add(integrations_tab, text="Integrations")
@@ -289,8 +296,7 @@ def main() -> int:
     ttk.Label(
         review_agents_tab,
         text=(
-            "Each card shows its own connection type. Hosted services open their setup page; "
-            "local agents are detected on this computer. A card does not claim CRC can run or publish a review until that adapter is implemented."
+            "OpenCode and Codex can run read-only reviews from this workspace. Starting one asks before code is sent to its configured model; reports stay in this app and are never posted to GitHub."
         ),
         style="Muted.TLabel",
         wraplength=1050,
@@ -332,19 +338,37 @@ def main() -> int:
         ttk.Label(card, text=f"CRC connection: {agent.integration}", style="CardMuted.TLabel").pack(anchor="w")
         if agent.executable:
             executable_found = shutil.which(agent.executable) is not None
-            if agent.agent_id == "codex-review":
-                agent_status.set("CLI found · hand-off only" if executable_found else "Web hand-off")
+            if agent.agent_id in {"codex-review", "opencode"}:
+                agent_status.set("Ready · read-only" if executable_found else "CLI not found")
+            elif agent.agent_id == "pr-agent":
+                agent_status.set("CLI found · setup required" if executable_found else "CLI not found")
             else:
-                agent_status.set("CLI found · adapter pending" if executable_found else "CLI not found")
+                agent_status.set("CLI found" if executable_found else "CLI not found")
             status_badge.configure(fg=colors["green"] if executable_found else colors["amber"])
         else:
             agent_status.set("External setup")
             status_badge.configure(fg=colors["blue"])
-        ttk.Button(
-            card,
-            text="Open setup",
-            command=lambda url=agent.official_url: webbrowser.open(url),
-        ).pack(anchor="w", pady=(10, 0))
+        if agent.agent_id in {"codex-review", "opencode"}:
+            run_button = ttk.Button(
+                card,
+                text="Run read-only review",
+                style="Accent.TButton",
+                state="normal" if executable_found else "disabled",
+                command=lambda agent_id=agent.agent_id: start_agent_review(agent_id),
+            )
+            run_button.pack(anchor="w", pady=(10, 0))
+            agent_review_buttons[agent.agent_id] = run_button
+            ttk.Button(
+                card,
+                text="Setup and help",
+                command=lambda url=agent.official_url: webbrowser.open(url),
+            ).pack(anchor="w", pady=(6, 0))
+        else:
+            ttk.Button(
+                card,
+                text="Open setup",
+                command=lambda url=agent.official_url: webbrowser.open(url),
+            ).pack(anchor="w", pady=(10, 0))
 
     provider_toolbar = ttk.Frame(reviewer_integrations_tab)
     provider_toolbar.pack(fill="x", pady=(0, 10))
@@ -472,6 +496,32 @@ def main() -> int:
         history_tree.column(column, width=width, anchor="w")
     history_tree.pack(fill="both", expand=True)
     history_tree.bind("<<TreeviewSelect>>", lambda _event: show_history())
+
+    ttk.Label(agent_history_tab, text="Saved local agent reports", style="PageTitle.TLabel").pack(anchor="w", pady=(0, 8))
+    agent_history_pane = ttk.Panedwindow(agent_history_tab, orient="horizontal")
+    agent_history_pane.pack(fill="both", expand=True)
+    agent_history_list_frame = ttk.Frame(agent_history_pane, style="Surface.TFrame", padding=8)
+    agent_history_tree = ttk.Treeview(
+        agent_history_list_frame,
+        columns=("agent", "project", "created_at", "model"),
+        show="headings",
+        selectmode="browse",
+    )
+    for column, width in (("agent", 150), ("project", 180), ("created_at", 190), ("model", 180)):
+        agent_history_tree.heading(column, text=column.replace("_", " ").title())
+        agent_history_tree.column(column, width=width, anchor="w", stretch=column in {"project", "model"})
+    agent_history_tree.pack(fill="both", expand=True)
+    agent_history_tree.bind("<<TreeviewSelect>>", lambda _event: show_agent_review_detail())
+    agent_history_pane.add(agent_history_list_frame, weight=2)
+    agent_history_detail_frame = ttk.Frame(agent_history_pane, style="Surface.TFrame", padding=10)
+    ttk.Label(agent_history_detail_frame, text="REPORT", style="Section.TLabel").pack(anchor="w")
+    agent_history_detail = tk.Text(
+        agent_history_detail_frame, wrap="word", state="disabled", bg=colors["panel"],
+        fg=colors["text"], relief="flat", borderwidth=0, padx=10, pady=10,
+    )
+    agent_history_detail.pack(fill="both", expand=True, pady=(6, 0))
+    agent_history_detail.insert("1.0", "Select a saved agent report.")
+    agent_history_pane.add(agent_history_detail_frame, weight=3)
 
     footer = ttk.Label(
         outer,
@@ -648,6 +698,76 @@ def main() -> int:
                 iid=item["session_id"],
                 values=(item["session_id"], item["created_at"], item["status"], f"{item['duration_seconds']:.2f}"),
             )
+
+    def refresh_agent_history():
+        for item in agent_history_tree.get_children():
+            agent_history_tree.delete(item)
+        for item in agent_review_store.list_reviews(limit=200):
+            agent_history_tree.insert(
+                "", "end", iid=item["review_id"],
+                values=(item["agent_name"], item["project_name"], item["created_at"], item["model"]),
+            )
+
+    def show_agent_review_detail():
+        selection = agent_history_tree.selection()
+        if not selection:
+            return
+        item = agent_review_store.get(selection[0])
+        if item is None:
+            return
+        agent_history_detail.configure(state="normal")
+        agent_history_detail.delete("1.0", "end")
+        agent_history_detail.insert("1.0", item["content"])
+        agent_history_detail.configure(state="disabled")
+
+    def start_agent_review(agent_id):
+        nonlocal agent_review_busy
+        project = selected_project()
+        if project is None:
+            messagebox.showinfo("Agent review", "Select a project first.")
+            return
+        agent = next((item for item in REVIEW_AGENTS if item.agent_id == agent_id), None)
+        if agent is None or agent_id not in {"codex-review", "opencode"}:
+            messagebox.showerror("Agent review", "This reviewer does not have a supported local adapter.")
+            return
+        if agent_review_busy:
+            messagebox.showinfo("Agent review", "Another agent review is already running.")
+            return
+        if shutil.which(agent.executable or "") is None:
+            messagebox.showerror("Agent review", f"{agent.name} CLI was not found on PATH.")
+            return
+        accepted = messagebox.askyesno(
+            "Send repository to configured model?",
+            f"{agent.name} will read the selected repository and send code to the model/provider configured in {agent.name}. "
+            "Depending on that configuration, code may leave this device. The agent is restricted to read-only review tools. "
+            "CODE-REVIEW-CENTER will save the report locally and will not publish it to GitHub. Continue?",
+        )
+        if not accepted:
+            return
+        agent_review_busy = True
+        for button in agent_review_buttons.values():
+            button.configure(state="disabled")
+        status_var.set(f"Starting {agent.name} review · {project.name}")
+        threading.Thread(
+            target=agent_review_worker,
+            args=(agent, project),
+            daemon=True,
+        ).start()
+
+    def agent_review_worker(agent, project):
+        try:
+            result = run_agent_review(agent.agent_id, project.path)
+            review_id = agent_review_store.save(
+                project_id=project.project_id,
+                project_name=project.name,
+                agent_id=agent.agent_id,
+                agent_name=agent.name,
+                model=result.model,
+                content=result.content,
+            )
+            events.put(("agent_review_success", review_id, agent.name, project.name))
+        except Exception as exc:
+            events.put(("agent_review_error", type(exc).__name__, str(exc)))
 
     def add_project():
         path = filedialog.askdirectory(title="Select source repository")
@@ -1255,6 +1375,26 @@ def main() -> int:
                         entry["status"].set("The request failed; your message is still in the box.")
                     status_var.set("Reviewer chat failed")
                     messagebox.showerror("Reviewer chat", f"{error_type}: {message}")
+                elif event[0] == "agent_review_success":
+                    _, review_id, agent_name, project_name = event
+                    agent_review_busy = False
+                    for agent_id, button in agent_review_buttons.items():
+                        executable = "codex" if agent_id == "codex-review" else "opencode"
+                        button.configure(state="normal" if shutil.which(executable) else "disabled")
+                    refresh_agent_history()
+                    agent_history_tree.selection_set(review_id)
+                    agent_history_tree.focus(review_id)
+                    show_agent_review_detail()
+                    notebook.select(agent_history_tab)
+                    status_var.set(f"{agent_name} review saved · {project_name}")
+                elif event[0] == "agent_review_error":
+                    _, error_type, message = event
+                    agent_review_busy = False
+                    for agent_id, button in agent_review_buttons.items():
+                        executable = "codex" if agent_id == "codex-review" else "opencode"
+                        button.configure(state="normal" if shutil.which(executable) else "disabled")
+                    status_var.set("Agent review failed")
+                    messagebox.showerror("Agent review", f"{error_type}: {message}")
                 elif event[0] == "review_success":
                     _, review_id, review = event
                     status_var.set(f"AI review saved · {review.provider_id}")
@@ -1278,6 +1418,7 @@ def main() -> int:
     refresh_scanners()
     refresh_providers()
     refresh_history()
+    refresh_agent_history()
     root.after(100, poll_events)
     root.mainloop()
     return 0
