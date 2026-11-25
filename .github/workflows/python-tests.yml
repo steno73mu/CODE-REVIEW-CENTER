@@ -1,0 +1,56 @@
+name: Python tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-tests:
+    name: unit-tests (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Compile source and tests
+        run: python -m compileall -q src tests
+      - name: Build wheel and source distribution
+        run: python -m pip install "setuptools>=68" build && python -m build --sdist --wheel --outdir dist
+      - name: Install built wheel
+        run: python -c "from pathlib import Path; import subprocess, sys; artifact = next(Path('dist').glob('*.whl')); subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--no-deps', '--force-reinstall', str(artifact)])"
+      - name: Verify wheel-installed CLI
+        run: crc --help
+      - name: Install built source distribution
+        run: python -c "from pathlib import Path; import subprocess, sys; artifact = next(Path('dist').glob('*.tar.gz')); subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--no-deps', '--no-build-isolation', '--force-reinstall', str(artifact)])"
+      - name: Verify installed CLI entry point
+        run: crc --help
+      - name: Verify desktop module imports without opening a display
+        run: python -c "import review_core.desktop"
+      - name: Run Tk desktop startup smoke (Linux)
+        if: matrix.python-version == '3.13' && runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y xvfb && xvfb-run -a python scripts/desktop_smoke.py
+      - name: Run Tk desktop startup smoke (Windows)
+        if: matrix.python-version == '3.13' && runner.os == 'Windows'
+        run: python scripts/desktop_smoke.py
+      - name: Verify desktop GUI launcher is installed
+        run: python -c "import importlib.metadata as m; assert any(e.name == 'crc-desktop' and e.value == 'review_core.desktop:main' for e in m.entry_points(group='gui_scripts'))"
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v

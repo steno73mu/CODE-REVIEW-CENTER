@@ -1,0 +1,32 @@
+# Changelog
+
+All notable changes to CODE-REVIEW-CENTER are documented here.
+
+## Unreleased
+
+### Added
+- Immutable normalized finding model and SHA-256 fingerprints.
+- SARIF 2.1.0, Semgrep JSON, and Gitleaks JSON adapters.
+- Exact fingerprint deduplication and conservative explainable cross-engine correlation.
+- Trusted scanner process execution with argv-only invocation, timeouts, bounded output, and process-tree termination on timeout/cancellation.
+- Concurrent multi-scanner orchestration with per-engine outcomes.
+- SQLite project, scanner-profile, scan-history, correlation-evidence, and AI-review persistence.
+- Local project registry and validated scanner/provider configuration.
+- `crc` CLI for projects, scanner profiles, scans, providers, AI reviews, and history.
+- `crc-desktop` Tkinter workspace for local project management, scanner profiles, background scans, findings, history, and AI review; packaged as a GUI script on Windows to avoid an extra console window.
+- JSON, SARIF 2.1.0, and Markdown report export, including correlation evidence and saved AI reviews.
+- Offline environment doctor and built-in Semgrep and redacted Gitleaks scanner presets.
+- GitHub Actions builds wheel and source distributions, installs both artifacts, checks CLI/desktop entry points, starts the real Tk workspace under Xvfb on Linux and on Windows, and runs unit tests across Linux and Windows on Python 3.11-3.13.
+
+### Security
+- Gitleaks secret values and matched source text are excluded from normalized findings.
+- Provider API keys are referenced through environment variables and are never stored in SQLite.
+- Remote AI review requires explicit opt-in and HTTPS; literal and DNS-resolved non-public destinations are rejected.
+- Scanner output and provider responses have bounded capture sizes.
+- Scanner timeouts and cancellation terminate child processes that inherit scanner output pipes.
+- Bare scanner executable names are resolved outside the scanned project directory; relative `PATH` entries are ignored, and executable paths within the scanned project are rejected.
+- Markdown reports escape untrusted finding text and fence AI output as inert text.
+- Desktop AI-review completion events no longer alter the controls of a concurrently running scan.
+- SQLite connections are explicitly closed after each transaction for Windows compatibility.
+- Application data directory permissions are restricted to the current user on POSIX systems.
+- Public pull-request CI uses GitHub-hosted runners, not the self-hosted Pop!_OS runner.
