@@ -138,6 +138,16 @@ crc provider add --id local --name "Local model" \
 crc review --session SESSION_ID --provider local
 ```
 
+NVIDIA NIM has a ready profile using NVIDIA's OpenAI-compatible endpoint. Choose a current model ID from NVIDIA's catalog and supply your own API key through `NVIDIA_API_KEY`:
+
+```bash
+export NVIDIA_API_KEY="..."
+crc provider preset add nvidia-nim --model meta/llama-3.1-8b-instruct
+crc review --session SESSION_ID --provider nvidia-nim --allow-external
+```
+
+The profile stores only the variable name, never the key. The desktop app has a matching NVIDIA setup button. Confirm the selected model is enabled for your NVIDIA account.
+
 API keys are referenced by environment-variable name and are never stored in SQLite. Remote providers must use HTTPS and require explicit opt-in:
 
 ```bash
