@@ -360,6 +360,7 @@ def main() -> int:
         refresh_integrations()
 
     def refresh_integrations():
+        import ipaddress
         import shutil
         from urllib.parse import urlparse
 
@@ -392,7 +393,10 @@ def main() -> int:
             )
 
         for tab_id in reviewer_panel_tabs.tabs():
+            page = reviewer_panel_tabs.nametowidget(tab_id)
             reviewer_panel_tabs.forget(tab_id)
+            if page is not reviewer_empty:
+                page.destroy()
         if not provider_rows:
             reviewer_panel_tabs.add(reviewer_empty, text="Getting started")
             return
@@ -400,7 +404,10 @@ def main() -> int:
             panel = ttk.Frame(reviewer_panel_tabs, padding=18)
             reviewer_panel_tabs.add(panel, text=profile.name)
             host = urlparse(profile.base_url).hostname or profile.base_url
-            is_local = host.casefold() in {"localhost", "127.0.0.1", "::1"}
+            try:
+                is_local = ipaddress.ip_address(host).is_loopback
+            except ValueError:
+                is_local = host.casefold() == "localhost"
             endpoint_type = "Local endpoint" if is_local else "Remote endpoint"
             key_status = ""
             if profile.api_key_env:
