@@ -29,7 +29,7 @@ def main() -> int:
     )
     from .providers import AIReviewClient
     from .review_agents import REVIEW_AGENTS
-    from .review_agent_runner import run_agent_review
+    from .review_agent_runner import resolve_agent_executable, run_agent_review
     from .agent_review_store import AgentReviewStore
     from .finding import Finding
     from .application import scan_project
@@ -337,7 +337,11 @@ def main() -> int:
         ).pack(anchor="w", fill="x", pady=(2, 5))
         ttk.Label(card, text=f"CRC connection: {agent.integration}", style="CardMuted.TLabel").pack(anchor="w")
         if agent.executable:
-            executable_found = shutil.which(agent.executable) is not None
+            executable_found = (
+                resolve_agent_executable(agent.agent_id) is not None
+                if agent.agent_id in {"codex-review", "opencode"}
+                else shutil.which(agent.executable) is not None
+            )
             if agent.agent_id in {"codex-review", "opencode"}:
                 agent_status.set("Ready · read-only" if executable_found else "CLI not found")
             elif agent.agent_id == "pr-agent":
@@ -733,7 +737,7 @@ def main() -> int:
         if agent_review_busy:
             messagebox.showinfo("Agent review", "Another agent review is already running.")
             return
-        if shutil.which(agent.executable or "") is None:
+        if resolve_agent_executable(agent_id) is None:
             messagebox.showerror("Agent review", f"{agent.name} CLI was not found on PATH.")
             return
         accepted = messagebox.askyesno(
@@ -1381,7 +1385,7 @@ def main() -> int:
                     agent_review_busy = False
                     for agent_id, button in agent_review_buttons.items():
                         executable = "codex" if agent_id == "codex-review" else "opencode"
-                        button.configure(state="normal" if shutil.which(executable) else "disabled")
+                        button.configure(state="normal" if resolve_agent_executable(agent_id) else "disabled")
                     refresh_agent_history()
                     agent_history_tree.selection_set(review_id)
                     agent_history_tree.focus(review_id)

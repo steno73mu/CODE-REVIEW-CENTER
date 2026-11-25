@@ -14,6 +14,25 @@ _MAX_REPORT_BYTES = 2 * 1024 * 1024
 _REVIEW_TIMEOUT_SECONDS = 900
 
 
+def resolve_agent_executable(agent_id: str) -> str | None:
+    """Resolve the supported CLI even when a desktop launch omitted NVM from PATH."""
+    command = {"codex-review": "codex", "opencode": "opencode"}.get(agent_id)
+    if command is None:
+        return None
+    found = shutil.which(command)
+    if found:
+        return str(Path(found).resolve())
+    candidates = [Path.home() / ".local" / "bin" / command]
+    nvm_root = Path.home() / ".nvm" / "versions" / "node"
+    if nvm_root.is_dir():
+        for node_dir in nvm_root.iterdir():
+            candidates.append(node_dir / "bin" / command)
+    usable = [path for path in candidates if path.is_file() and os.access(path, os.X_OK)]
+    if not usable:
+        return None
+    return str(max(usable, key=lambda path: path.stat().st_mtime).resolve())
+
+
 class AgentReviewError(RuntimeError):
     """Raised when an installed review agent cannot complete a safe review."""
 
@@ -77,12 +96,16 @@ def run_agent_review(agent_id: str, project_path: str | Path) -> AgentReviewResu
         raise AgentReviewError("selected project path is not a directory")
 
     executable = "codex" if agent_id == "codex-review" else "opencode"
-    resolved = shutil.which(executable)
+    resolved = resolve_agent_executable(agent_id)
     if resolved is None:
-        raise AgentReviewError(f"{executable} CLI was not found on PATH")
+        raise AgentReviewError(f"{executable} CLI was not found in PATH, ~/.local/bin, or the NVM installations")
 
     command: list[str]
     env = os.environ.copy()
+    cli_path = Path(resolved)
+    path_entries = [str(cli_path.parent), str(Path(resolved).resolve().parent)]
+    path_entries.extend(env.get("PATH", os.defpath).split(os.pathsep))
+    env["PATH"] = os.pathsep.join(dict.fromkeys(entry for entry in path_entries if entry))
     output_path: Path | None = None
     temporary_directory = None
     if agent_id == "codex-review":
