@@ -278,6 +278,7 @@ def main() -> int:
     def refresh_projects():
         nonlocal project_rows
         project_rows = projects.list_projects()
+        project_metric_var.set(str(len(project_rows)))
         project_list.delete(0, "end")
         for item in project_rows:
             project_list.insert("end", f"{item.name}  ·  {Path(item.path).name}")
@@ -285,6 +286,7 @@ def main() -> int:
     def refresh_scanners():
         nonlocal scanner_rows
         scanner_rows = scanners.list_profiles()
+        scanner_metric_var.set(str(sum(1 for item in scanner_rows if item.enabled)))
         scanner_list.delete(0, "end")
         for item in scanner_rows:
             marker = "●" if item.enabled else "○"
@@ -293,6 +295,7 @@ def main() -> int:
     def refresh_providers():
         nonlocal provider_rows
         provider_rows = providers.list_profiles()
+        reviewer_metric_var.set(str(sum(1 for item in provider_rows if item.enabled)))
         provider_list.delete(0, "end")
         for item in provider_rows:
             marker = "●" if item.enabled else "○"
@@ -319,6 +322,7 @@ def main() -> int:
         try:
             projects.register(name, path)
             refresh_projects()
+            workspace_hint_var.set(f"Local folder · {name}")
             status_var.set("Project registered")
         except (ValueError, OSError) as exc:
             messagebox.showerror("Project", str(exc))
@@ -440,10 +444,32 @@ def main() -> int:
             providers.remove(item.provider_id)
             refresh_providers()
 
+    def show_finding_detail():
+        selection = finding_tree.selection()
+        if not selection:
+            return
+        try:
+            finding = current_findings[int(selection[0])]
+        except (IndexError, ValueError):
+            return
+        details = (
+            f"{finding.severity.value.upper()} · {finding.tool}\\n\\n"
+            f"Rule: {finding.rule_id or 'Not provided'}\\n"
+            f"Location: {finding.path or 'Unknown'}:{finding.start_line or '?'}\\n\\n"
+            f"{finding.message}\\n"
+        )
+        if finding.help_uri:
+            details += f"\\nHelp: {finding.help_uri}"
+        finding_detail.configure(state="normal")
+        finding_detail.delete("1.0", "end")
+        finding_detail.insert("1.0", details)
+        finding_detail.configure(state="disabled")
+
     def render_findings(findings, session_id=None):
         nonlocal current_session_id, current_findings
         current_session_id = session_id
         current_findings = list(findings)
+        findings_metric_var.set(str(len(current_findings)))
         triage = {item["fingerprint"]: item["status"] for item in triage_store.list_for_session(session_id)} if session_id else {}
         for item in finding_tree.get_children():
             finding_tree.delete(item)
@@ -455,7 +481,16 @@ def main() -> int:
                     finding.tool, finding.rule_id or "", finding.path or "",
                     finding.start_line or "", finding.message,
                 ),
+                tags=(f"severity-{finding.severity.value.casefold() if finding.severity.value.casefold() in {'critical', 'high', 'medium', 'low'} else 'info'}",),
             )
+        if current_findings:
+            finding_tree.selection_set("0")
+            show_finding_detail()
+        else:
+            finding_detail.configure(state="normal")
+            finding_detail.delete("1.0", "end")
+            finding_detail.insert("1.0", "No findings in this review.")
+            finding_detail.configure(state="disabled")
 
     def set_finding_status(status):
         if current_session_id is None:
@@ -598,16 +633,20 @@ def main() -> int:
                 elif event[0] == "github_success":
                     _, project_name, checkout = event
                     refresh_projects()
+                    workspace_hint_var.set(f"GitHub repository · {project_name}")
                     status_var.set(f"GitHub repository ready for local review · {project_name}")
                 elif event[0] == "github_updated":
                     _, project_name, checkout = event
+                    workspace_hint_var.set(f"GitHub repository · {project_name} · updated")
                     status_var.set(f"GitHub repository updated · {project_name}")
                 elif event[0] == "github_success":
                     _, project_name, checkout = event
                     refresh_projects()
+                    workspace_hint_var.set(f"GitHub repository · {project_name}")
                     status_var.set(f"GitHub repository ready for local review · {project_name}")
                 elif event[0] == "github_updated":
                     _, project_name, checkout = event
+                    workspace_hint_var.set(f"GitHub repository · {project_name} · updated")
                     status_var.set(f"GitHub repository updated · {project_name}")
                 elif event[0] == "review_success":
                     _, review_id, review = event
