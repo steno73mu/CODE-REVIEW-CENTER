@@ -383,7 +383,7 @@ def main() -> int:
                 panel["status"].set("Ready" if present else "CLI not found")
             command = " ".join(profile.command)
             panel["detail"].set(
-                f"Output: {profile.parser.upper()} · Timeout: {profile.timeout_seconds:g}s\\n"
+                f"Output: {profile.parser.upper()} · Timeout: {profile.timeout_seconds:g}s\n"
                 f"Command: {command}"
             )
             panel["action"].configure(
@@ -617,13 +617,13 @@ def main() -> int:
         except (IndexError, ValueError):
             return
         details = (
-            f"{finding.severity.value.upper()} · {finding.tool}\\n\\n"
-            f"Rule: {finding.rule_id or 'Not provided'}\\n"
-            f"Location: {finding.path or 'Unknown'}:{finding.start_line or '?'}\\n\\n"
-            f"{finding.message}\\n"
+            f"{finding.severity.value.upper()} · {finding.tool}\n\n"
+            f"Rule: {finding.rule_id or 'Not provided'}\n"
+            f"Location: {finding.path or 'Unknown'}:{finding.start_line or '?'}\n\n"
+            f"{finding.message}\n"
         )
         if finding.help_uri:
-            details += f"\\nHelp: {finding.help_uri}"
+            details += f"\nHelp: {finding.help_uri}"
         finding_detail.configure(state="normal")
         finding_detail.delete("1.0", "end")
         finding_detail.insert("1.0", details)
@@ -859,13 +859,13 @@ def main() -> int:
             chat_view.configure(state="normal")
             chat_view.delete("1.0", "end")
             if not messages:
-                chat_view.insert("end", f"{provider.name} · review assistant\\n", "assistant")
-                chat_view.insert("end", "Ask about this scan's findings. The chat receives finding metadata only.\\n")
+                chat_view.insert("end", f"{provider.name} · review assistant\n", "assistant")
+                chat_view.insert("end", "Ask about this scan's findings. The chat receives finding metadata only.\n")
             else:
                 for item in messages:
                     role = item["role"]
-                    chat_view.insert("end", ("You" if role == "user" else provider.name) + "\\n", role)
-                    chat_view.insert("end", item["content"] + "\\n\\n")
+                    chat_view.insert("end", ("You" if role == "user" else provider.name) + "\n", role)
+                    chat_view.insert("end", item["content"] + "\n\n")
             chat_view.configure(state="disabled")
             chat_view.see("end")
 
@@ -959,15 +959,42 @@ def main() -> int:
                     _, project_name, checkout = event
                     workspace_hint_var.set(f"GitHub repository · {project_name} · updated")
                     status_var.set(f"GitHub repository updated · {project_name}")
-                elif event[0] == "github_success":
-                    _, project_name, checkout = event
-                    refresh_projects()
-                    workspace_hint_var.set(f"GitHub repository · {project_name}")
-                    status_var.set(f"GitHub repository ready for local review · {project_name}")
-                elif event[0] == "github_updated":
-                    _, project_name, checkout = event
-                    workspace_hint_var.set(f"GitHub repository · {project_name} · updated")
-                    status_var.set(f"GitHub repository updated · {project_name}")
+                elif event[0] == "chat_success":
+                    _, key, user_message, result = event
+                    try:
+                        history.save_ai_conversation_turn(
+                            key[0], key[1], result.model, user_message, result.content
+                        )
+                        entry = chat_windows.get(key)
+                        if entry is not None:
+                            messages = history.get_ai_conversation(key[0], key[1])
+                            chat_view = entry["view"]
+                            chat_view.configure(state="normal")
+                            chat_view.delete("1.0", "end")
+                            for item in messages:
+                                role = item["role"]
+                                chat_view.insert("end", ("You" if role == "user" else result.model) + "\n", role)
+                                chat_view.insert("end", item["content"] + "\n\n")
+                            chat_view.configure(state="disabled")
+                            chat_view.see("end")
+                            entry["input"].delete("1.0", "end")
+                            entry["send"].configure(state="normal")
+                            entry["status"].set("Reply saved on this device.")
+                        status_var.set(f"Chat reply · {result.provider_id}")
+                    except (ValueError, TypeError, OSError) as exc:
+                        entry = chat_windows.get(key)
+                        if entry is not None:
+                            entry["send"].configure(state="normal")
+                            entry["status"].set("Could not save this chat reply.")
+                        messagebox.showerror("Reviewer chat", str(exc))
+                elif event[0] == "chat_error":
+                    _, key, error_type, message = event
+                    entry = chat_windows.get(key)
+                    if entry is not None:
+                        entry["send"].configure(state="normal")
+                        entry["status"].set("The request failed; your message is still in the box.")
+                    status_var.set("Reviewer chat failed")
+                    messagebox.showerror("Reviewer chat", f"{error_type}: {message}")
                 elif event[0] == "review_success":
                     _, review_id, review = event
                     status_var.set(f"AI review saved · {review.provider_id}")
