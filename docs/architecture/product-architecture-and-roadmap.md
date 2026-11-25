@@ -46,7 +46,7 @@ The development branch currently contains a Python 3.11+ application with:
 - Optional OpenAI-compatible AI review of finding metadata, with remote opt-in; current documentation says source code and code excerpts are not sent.
 - Automated package/CLI CI on Linux and Windows. Synthetic Semgrep and Gitleaks adapter checks are recorded in CI.
 
-The current desktop interface is an MVP, not a release-ready visual design. The codebase does not yet establish GitLab/Bitbucket/self-hosted PR/MR review, host comment publishing, Trivy/OSV-Scanner adapters, Reviewdog integration, or dedicated screens for AI reviewers. Real interactive desktop verification on Pop!_OS and Windows, broader correlation fixtures, and the project's license remain open. A Python package is not yet a polished consumer installer.
+The current desktop interface is an MVP, not a release-ready visual design. The codebase does not yet establish GitLab/Bitbucket/self-hosted PR/MR review, host comment publishing, Trivy/OSV-Scanner adapters, Reviewdog integration, or dedicated screens for AI reviewers. The user reports that Semgrep 1.186.0 now works on their Pop!_OS machine after replacing a broken pipx symlink with a wrapper that uses an existing Python 3.14 installation; version/help and a `--config auto` scan were reported successful. This is a machine-specific user-reported verification, separate from CI's Semgrep 1.187.0 fixture test and from a clean install for future users. Real interactive desktop verification on Pop!_OS and Windows, broader correlation fixtures, and the project's license remain open. A Python package is not yet a polished consumer installer.
 
 Treat these statements as a snapshot; update them when implementation changes.
 
@@ -79,21 +79,27 @@ Each tool gets a dedicated panel in the UI showing availability, connection/conf
 
 Do not assume every named service exposes a public API, CLI, or redistribution right. Add an adapter only through a documented and supportable interface. Where a vendor service can only run in its own web interface, present it as an external hand-off rather than falsely claiming native execution.
 
-### 5.3 AI reviewer shortlist — candidates, not a final roster
+### 5.3 Seven requested AI-review integrations
 
-Prior discussions identified PR-Agent for a GitHub workflow using an NVIDIA API, and the user asked for six or seven separate integrations. The following are current candidates to evaluate; this is not a decision to bundle, endorse, or implement all of them:
+The requested seven targets are PR-Agent, CodeRabbit, Greptile, Qodo Code Review, GitHub Copilot Code Review, Codex Code Review, and OpenCode. These are not all the same kind of product: some are local tools, others are hosted services or native platform reviewers. Each gets its own product panel and an explicit capability label. The integration level must be verified before claiming support:
 
-| Candidate | Potential fit | Constraint to verify |
+1. **Native adapter:** a supported CLI, API, or platform integration can be operated by CODE-REVIEW-CENTER.
+2. **Import/connection:** CODE-REVIEW-CENTER can read a supported result format or platform comments/checks.
+3. **External hand-off:** the panel explains the required account/setup and opens the official tool or review page, without pretending to control it.
+
+Prefer native adapters where officially supported. Do not copy another product's UI or claim automation when only a hand-off is available. Evaluate code/data flow, permission scopes, API/CLI stability, pricing, and redistribution terms for every target.
+
+| Requested integration | Intended role | First verification |
 |---|---|---|
-| PR-Agent | Open-source/self-hostable first candidate; adaptable to several Git providers and model endpoints. | Pin a supported version, verify current community maintenance, local diff support, exact permissions, and model/data flow. |
-| CodeRabbit | Hosted reviewer with multiple Git-platform integrations. | External code processing, plan limits, provider APIs, and whether the product can consume results outside the vendor UI. |
-| Greptile | Hosted reviewer emphasizing repository context; candidate for GitHub/GitLab workflows. | Hosted data handling and supported integration/API surface. |
-| Qodo Code Review | Hosted multi-platform review product, distinct from community PR-Agent. | Product plan, current platform support, and supported API contract. |
-| GitHub Copilot Code Review | Native option for GitHub PRs. | Platform/plan dependence; not a cross-host local engine. |
-| Codex Code Review | Candidate for local review and GitHub workflows; GitLab availability must be treated according to its current status. | Product availability and whether a third-party app integration is supported. |
-| Seventh reviewer | Not identified yet. | Do not guess its name; confirm from project history or a deliberate evaluation. |
+| PR-Agent | Open-source/self-hostable AI reviewer; prior discussion paired it with an NVIDIA API for GitHub. | Current community maintenance, local diff support, host permissions, model endpoint/data flow. |
+| CodeRabbit | Hosted reviewer with multiple Git-platform integrations. | Supported APIs/results, external code processing, account plan and cost. |
+| Greptile | Hosted reviewer emphasizing repository context. | Supported platforms, results/API surface, and hosted data handling. |
+| Qodo Code Review | Hosted multi-platform reviewer, separate from community PR-Agent. | Product plan, current platform support, and supported integration contract. |
+| GitHub Copilot Code Review | Native reviewer for GitHub pull requests. | Platform/plan requirements and available request/result APIs. |
+| Codex Code Review | Local review and hosted pull-request review candidate. | Supported local invocation and currently available remote platforms/APIs. |
+| OpenCode | Local coding-agent CLI configured for review tasks; model endpoint may be local or remote. | Stable command/interface for read-only review, prompt controls, permissions, and output format. |
 
-OpenCode is a coding agent/CLI, and LM Studio is a local model server; neither is automatically a separate review engine. “OpenReview” has not been confirmed as the name of the intended code-review tool. PR-Agent is the concrete reviewer recovered from the earlier GitHub-review discussion.
+LM Studio is a local model server, not a separate reviewer; it can be an optional model endpoint for a compatible agent. The remembered name “OpenReview” is not confirmed; the user has now identified OpenCode as the seventh requested integration.
 
 ### 5.4 Findings, correlation, and report
 
@@ -123,7 +129,7 @@ Package for clean Linux and Windows user accounts. Detect tools and show missing
 ## 6. Delivery path and completion gates
 
 ### Phase 0 — Freeze the product contract
-- Confirm the seven-tool/reviewer roster from project history; mark each as scanner, reporter, local reviewer, or hosted service.
+- Confirm and freeze the seven reviewer integrations listed in section 5.3; mark each as scanner, reporter, local reviewer, hosted service, native adapter, import/connection, or external hand-off.
 - Define first-release platforms, source modes, comment behavior, and AI data consent.
 - Choose the UI framework, installer approach, credential storage, and project license.
 - Produce a provider/tool capability and permission matrix.
@@ -153,9 +159,9 @@ Package for clean Linux and Windows user accounts. Detect tools and show missing
 **Gate:** local and remote snapshots produce the same finding contract, while host-specific details remain in connectors.
 
 ### Phase 4 — Optional review agents
-- Implement the plugin/capability contract and evaluate PR-Agent first as a self-hosted candidate.
-- Evaluate the remaining requested candidates for supported APIs/CLIs and lawful integration.
-- Add one dedicated configuration/result panel per integration actually supported.
+- Implement the plugin/capability contract and evaluate PR-Agent and OpenCode first as local/self-hostable candidates.
+- Evaluate CodeRabbit, Greptile, Qodo, Copilot, and Codex for supported APIs/CLIs and lawful integration.
+- Add a dedicated panel for each of the seven requested integrations, labeling unavailable native automation as import/connection or external hand-off.
 - Add local Ollama/LM Studio and remote provider tests only where the selected review agent uses them; do not require a model.
 
 **Gate:** every enabled reviewer has verified data flow, permissions, cost/status disclosure, and a useful error path.
@@ -185,12 +191,11 @@ Package for clean Linux and Windows user accounts. Detect tools and show missing
 
 ## 7. Decisions still open
 
-1. What was the seventh tool/reviewer discussed earlier? Confirm the exact six/seven before implementation.
-2. Which hosted providers are first after GitHub: GitLab, Bitbucket, both, or another host?
-3. Which candidate AI reviewers expose an integration that CODE-REVIEW-CENTER can actually operate or consume?
-4. Which desktop UI and installer technologies should be used?
-5. What is the project's license?
-6. Which results can each provider publish, and which individual findings are eligible for comments on each host?
+1. What desktop UI and installer technologies should be used?
+2. What is the project's license?
+3. Which hosted platforms should follow GitHub first, if the planned GitLab-then-Bitbucket order should change?
+4. Which of the seven AI-review targets expose a stable interface CODE-REVIEW-CENTER can operate or consume, and which are external hand-offs?
+5. Which result types can each host publish as review comments/checks?
 
 Until these choices and gates are resolved, call the software an early-development MVP, not a public-ready product.
 
