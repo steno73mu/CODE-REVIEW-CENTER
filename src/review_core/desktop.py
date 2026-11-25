@@ -525,7 +525,7 @@ def main() -> int:
 
     footer = ttk.Label(
         outer,
-        text="Reviewed code stays in the local workspace unless you explicitly send it to a configured AI provider.",
+        text="Scanner results stay local. AI reviewers receive repository code only after explicit confirmation; reports are saved on this device.",
         style="Muted.TLabel",
     )
     footer.pack(anchor="w", pady=(10, 0))
@@ -1311,6 +1311,7 @@ def main() -> int:
         open_provider_chat(provider.provider_id)
 
     def poll_events():
+        nonlocal agent_review_busy
         try:
             while True:
                 event = events.get_nowait()
