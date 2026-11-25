@@ -100,12 +100,14 @@ The desktop workspace also provides **Add GitHub** and **Update** actions in the
 ```bash
 crc scanner preset add semgrep
 crc scanner preset add gitleaks
+crc scanner preset add trivy
+crc scanner preset add osv-scanner
 crc project list
 crc scan --project PROJECT_ID
 crc history list
 ```
 
-Copy the `project_id` from `crc project list` and replace `PROJECT_ID` above. Semgrep must be installed and available on `PATH`. The Gitleaks preset requires Gitleaks 8.19 or newer and requests fully redacted JSON on stdout using the upstream [Gitleaks CLI report-path convention](https://github.com/gitleaks/gitleaks#commands).
+Copy the `project_id` from `crc project list` and replace `PROJECT_ID` above. Semgrep must be installed and available on `PATH`. The Gitleaks preset requires Gitleaks 8.19 or newer and requests fully redacted JSON on stdout using the upstream [Gitleaks CLI report-path convention](https://github.com/gitleaks/gitleaks#commands). The Trivy preset scans filesystem vulnerabilities and misconfigurations and emits SARIF; it leaves secret detection to Gitleaks so secret match text is not copied into the shared finding record. The OSV-Scanner preset emits SARIF for dependency vulnerability findings. Both tools are optional external installations, and their database/network requirements depend on the tools' configuration.
 
 ### Open the desktop workspace
 
