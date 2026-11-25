@@ -66,6 +66,14 @@ class ScanStore:
                     content TEXT NOT NULL,
                     created_at TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS ai_conversations (
+                    session_id TEXT NOT NULL REFERENCES scan_sessions(session_id) ON DELETE CASCADE,
+                    provider_id TEXT NOT NULL,
+                    model TEXT NOT NULL,
+                    messages_json TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    PRIMARY KEY (session_id, provider_id)
+                );
                 CREATE TABLE IF NOT EXISTS scan_correlations (
                     session_id TEXT NOT NULL REFERENCES scan_sessions(session_id) ON DELETE CASCADE,
                     group_order INTEGER NOT NULL,
@@ -256,3 +264,78 @@ class ScanStore:
                 (session_id,),
             ).fetchall()
         return [dict(row) for row in rows]
+
+    def get_ai_conversation(self, session_id: str, provider_id: str) -> list[dict[str, str]]:
+        self._validate_session_id(session_id)
+        if not isinstance(provider_id, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", provider_id):
+            raise ValueError("provider_id must be a safe identifier")
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT messages_json FROM ai_conversations WHERE session_id = ? AND provider_id = ?",
+                (session_id, provider_id),
+            ).fetchone()
+        if row is None:
+            return []
+        messages = json.loads(row["messages_json"])
+        if not isinstance(messages, list):
+            raise ValueError("stored AI conversation is invalid")
+        return messages
+
+    def save_ai_conversation_turn(
+        self,
+        session_id: str,
+        provider_id: str,
+        model: str,
+        user_message: str,
+        assistant_message: str,
+    ) -> None:
+        self._validate_session_id(session_id)
+        if not isinstance(provider_id, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", provider_id):
+            raise ValueError("provider_id must be a safe identifier")
+        if not isinstance(model, str) or not model.strip():
+            raise ValueError("model must be non-empty text")
+        if not isinstance(user_message, str) or not user_message.strip() or len(user_message) > 32_768:
+            raise ValueError("user message must contain 1-32768 characters")
+        if not isinstance(assistant_message, str) or not assistant_message.strip() or len(assistant_message) > 2_000_000:
+            raise ValueError("assistant message must contain 1-2000000 characters")
+
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            exists = connection.execute(
+                "SELECT 1 FROM scan_sessions WHERE session_id = ?",
+                (session_id,),
+            ).fetchone()
+            if exists is None:
+                raise ValueError(f"unknown scan session: {session_id}")
+            row = connection.execute(
+                "SELECT messages_json FROM ai_conversations WHERE session_id = ? AND provider_id = ?",
+                (session_id, provider_id),
+            ).fetchone()
+            messages = json.loads(row["messages_json"]) if row else []
+            messages.extend((
+                {"role": "user", "content": user_message},
+                {"role": "assistant", "content": assistant_message},
+            ))
+            encoded = json.dumps(messages, ensure_ascii=False)
+            updated_at = datetime.now(timezone.utc).isoformat()
+            connection.execute(
+                """
+                INSERT INTO ai_conversations (session_id, provider_id, model, messages_json, updated_at)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(session_id, provider_id) DO UPDATE SET
+                    model = excluded.model,
+                    messages_json = excluded.messages_json,
+                    updated_at = excluded.updated_at
+                """,
+                (session_id, provider_id, model.strip(), encoded, updated_at),
+            )
+
+    def clear_ai_conversation(self, session_id: str, provider_id: str) -> None:
+        self._validate_session_id(session_id)
+        if not isinstance(provider_id, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", provider_id):
+            raise ValueError("provider_id must be a safe identifier")
+        with self._connect() as connection:
+            connection.execute(
+                "DELETE FROM ai_conversations WHERE session_id = ? AND provider_id = ?",
+                (session_id, provider_id),
+            )
