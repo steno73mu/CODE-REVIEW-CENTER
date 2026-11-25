@@ -23,7 +23,7 @@ def main() -> int:
     from .cli import ensure_data_directory
     from .configuration import (
         ProviderConfigStore, ProviderProfile, ScannerConfigStore, ScannerProfile,
-        create_scanner_preset,
+        create_scanner_preset, create_provider_preset,
     )
     from .providers import AIReviewClient
     from .finding import Finding
@@ -171,7 +171,8 @@ def main() -> int:
     provider_list.pack(fill="x", pady=(0, 8))
     provider_buttons = ttk.Frame(sidebar, style="Surface.TFrame")
     provider_buttons.pack(fill="x")
-    ttk.Button(provider_buttons, text="+ Add reviewer", command=lambda: add_provider()).pack(side="left")
+    ttk.Button(provider_buttons, text="+ NVIDIA", command=lambda: add_nvidia_provider()).pack(side="left")
+    ttk.Button(provider_buttons, text="+ Add reviewer", command=lambda: add_provider()).pack(side="left", padx=(5, 0))
     ttk.Button(provider_buttons, text="Remove", command=lambda: remove_provider()).pack(side="left", padx=5)
 
     page_header = ttk.Frame(workspace)
@@ -435,6 +436,23 @@ def main() -> int:
         if messagebox.askyesno("Remove scanner", f"Remove profile {item.name}?"):
             scanners.remove(item.scanner_id)
             refresh_scanners()
+
+    def add_nvidia_provider():
+        preset = create_provider_preset("nvidia-nim")
+        model = simpledialog.askstring(
+            "NVIDIA NIM",
+            "NVIDIA model ID:",
+            initialvalue=preset.model,
+        )
+        if not model:
+            return
+        try:
+            profile = create_provider_preset("nvidia-nim", model=model)
+            providers.save(profile)
+            refresh_providers()
+            status_var.set("NVIDIA NIM saved · set NVIDIA_API_KEY before review")
+        except (ValueError, TypeError) as exc:
+            messagebox.showerror("NVIDIA NIM", str(exc))
 
     def add_provider():
         provider_id = simpledialog.askstring("AI reviewer", "Provider ID (e.g. local-ollama):")
