@@ -347,6 +347,7 @@ def main() -> int:
         for item in scanner_rows:
             marker = "●" if item.enabled else "○"
             scanner_list.insert("end", f"{marker} {item.name}  [{item.parser}]")
+        refresh_integrations()
 
     def refresh_providers():
         nonlocal provider_rows
@@ -356,6 +357,7 @@ def main() -> int:
         for item in provider_rows:
             marker = "●" if item.enabled else "○"
             provider_list.insert("end", f"{marker} {item.name}  [{item.model}]")
+        refresh_integrations()
 
     def refresh_integrations():
         import shutil
@@ -435,7 +437,6 @@ def main() -> int:
                 scanners.save(profile)
                 status_var.set(f"{profile.name} preset added")
             refresh_scanners()
-            refresh_integrations()
         except (ValueError, TypeError) as exc:
             messagebox.showerror("Scanner preset", str(exc))
 
