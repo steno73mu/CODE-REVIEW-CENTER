@@ -23,7 +23,7 @@ def main() -> int:
     from .cli import ensure_data_directory
     from .configuration import (
         ProviderConfigStore, ProviderProfile, ScannerConfigStore, ScannerProfile,
-        create_scanner_preset, create_provider_preset,
+        SCANNER_PRESET_NAMES, create_scanner_preset, create_provider_preset,
     )
     from .providers import AIReviewClient
     from .finding import Finding
@@ -99,6 +99,8 @@ def main() -> int:
     events: queue.Queue = queue.Queue()
     current_session_id = None
     current_findings = []
+    chat_windows = {}
+
 
     project_metric_var = tk.StringVar(value="0")
     scanner_metric_var = tk.StringVar(value="0")
@@ -211,6 +213,55 @@ def main() -> int:
     history_tab = ttk.Frame(notebook, padding=10)
     notebook.add(findings_tab, text="Findings")
     notebook.add(history_tab, text="Review history")
+
+    integrations_tab = ttk.Frame(notebook, padding=10)
+    notebook.add(integrations_tab, text="Integrations")
+    ttk.Label(
+        integrations_tab,
+        text="Each tool has its own status and setup. AI chats stay separate by reviewer and scan.",
+        style="Muted.TLabel",
+    ).pack(anchor="w", pady=(0, 10))
+    integration_tabs = ttk.Notebook(integrations_tab)
+    integration_tabs.pack(fill="both", expand=True)
+    scanner_integrations_tab = ttk.Frame(integration_tabs, padding=10)
+    reviewer_integrations_tab = ttk.Frame(integration_tabs, padding=10)
+    integration_tabs.add(scanner_integrations_tab, text="Scanners")
+    integration_tabs.add(reviewer_integrations_tab, text="AI reviewers")
+
+    scanner_panel_tabs = ttk.Notebook(scanner_integrations_tab)
+    scanner_panel_tabs.pack(fill="both", expand=True)
+    scanner_integration_panels = {}
+    for preset_name in SCANNER_PRESET_NAMES:
+        scanner_profile = create_scanner_preset(preset_name)
+        panel = ttk.Frame(scanner_panel_tabs, padding=18)
+        scanner_panel_tabs.add(panel, text=scanner_profile.name)
+        ttk.Label(panel, text=scanner_profile.name, style="PageTitle.TLabel").pack(anchor="w")
+        scanner_status = tk.StringVar(value="Checking setup…")
+        scanner_detail = tk.StringVar(value="")
+        ttk.Label(panel, textvariable=scanner_status, style="Section.TLabel").pack(anchor="w", pady=(12, 4))
+        ttk.Label(panel, textvariable=scanner_detail, style="Muted.TLabel", wraplength=700, justify="left").pack(anchor="w")
+        scanner_action = ttk.Button(panel, text="Add preset", command=lambda name=preset_name: toggle_scanner_preset(name))
+        scanner_action.pack(anchor="w", pady=(14, 0))
+        scanner_integration_panels[preset_name] = {
+            "status": scanner_status,
+            "detail": scanner_detail,
+            "action": scanner_action,
+            "profile_id": scanner_profile.scanner_id,
+        }
+
+    reviewer_panel_tabs = ttk.Notebook(reviewer_integrations_tab)
+    reviewer_panel_tabs.pack(fill="both", expand=True)
+    reviewer_empty = ttk.Frame(reviewer_panel_tabs, padding=18)
+    reviewer_panel_tabs.add(reviewer_empty, text="Getting started")
+    ttk.Label(reviewer_empty, text="No AI reviewers configured", style="PageTitle.TLabel").pack(anchor="w")
+    ttk.Label(
+        reviewer_empty,
+        text="Add NVIDIA NIM, a local model endpoint, or another compatible reviewer from the sidebar.",
+        style="Muted.TLabel",
+        wraplength=700,
+        justify="left",
+    ).pack(anchor="w", pady=(8, 0))
+
 
     triage_actions = ttk.Frame(findings_tab)
     triage_actions.pack(fill="x", pady=(0, 8))
