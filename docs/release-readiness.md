@@ -16,6 +16,7 @@ The current branch is a functional MVP, not a production release. Complete this 
 - [x] Prevent scanner executable shadowing: relative PATH entries and executable paths inside the scanned project are rejected.
 - [x] Smoke-test Tk workspace initialization on GitHub-hosted Linux (Xvfb) and Windows runners.
 - [ ] Run the Tkinter desktop application interactively on real Pop!_OS and Windows desktops, including scan cancellation, triage, AI review, and report export.
+- [ ] Verify the Trivy and OSV-Scanner SARIF presets on supported Linux and Windows versions, including clean repositories, findings, and scanner errors.
 - [ ] Test local providers (Ollama and/or LM Studio) and at least one remote OpenAI-compatible provider with explicit consent and a non-production test key.
 - [ ] Review data retention, local database backup/restore, permissions, and user-facing disclosure for AI review metadata.
 - [x] Build wheel and source distributions, install each artifact, and run package/CLI checks in the Linux/Windows Python 3.11-3.13 CI matrix.
