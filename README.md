@@ -157,7 +157,7 @@ crc provider add --id remote --name "Remote reviewer" \
 crc review --session SESSION_ID --provider remote --allow-external
 ```
 
-Reviewer chats receive finding metadata and the messages you type, but do not upload source files or code excerpts. Conversations are saved locally in SQLite separately for each reviewer and scan. Remote chat requires explicit opt-in when the chat opens. Assess the sensitivity of finding messages and chat text before using a remote provider.
+Reviewer chats send finding metadata and the messages you type. The app does not automatically attach repository files or excerpts, but any code or sensitive text you paste into chat is sent to the selected provider. Conversations are saved locally in SQLite separately for each reviewer and scan. Remote chat requires explicit opt-in when the chat opens.
 
 ## Triage and reports
 
