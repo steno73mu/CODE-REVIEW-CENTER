@@ -30,6 +30,7 @@ This is an original product, not a repackaged scanner or a fork of another revie
 - **Local persistence:** SQLite scan history, projects, scanner profiles, correlation evidence, reviewer chats per scan/provider, and triage state.
 - **Finding triage:** open, accepted, false positive, fixed, or won't-fix, with reviewer notes.
 - **AI review:** OpenAI-compatible Chat Completions providers, local endpoints, environment-variable API key references, explicit remote-provider opt-in.
+- **Independent CLI reviewers:** OpenCode and Codex can review a selected repository with read-only controls; CODE-REVIEW-CENTER asks before starting, saves reports locally, and does not publish them to GitHub.
 - **Reports:** JSON, SARIF 2.1.0, and Markdown exports.
 - **Interfaces:** `crc` CLI and `crc-desktop` Tkinter desktop workspace with separate scanner/provider panels.
 - **GitHub repositories:** clone and update HTTPS GitHub repositories locally, then analyze them with the same scanner workflow.
@@ -115,7 +116,7 @@ Copy the `project_id` from `crc project list` and replace `PROJECT_ID` above. Se
 crc-desktop
 ```
 
-The desktop workspace includes individual status/setup panels for Semgrep, Gitleaks, Trivy, OSV-Scanner, and configured AI reviewers. It supports background scans, cancellation, finding triage, a saved chat per reviewer and scan, history, and report export. On Windows, `crc-desktop` is installed as a GUI script and does not open an extra console window. On Linux, install the matching `python3-tk` package if Tkinter is not included with your Python interpreter.
+The desktop workspace includes individual status/setup panels for Semgrep, Gitleaks, Trivy, OSV-Scanner, and configured AI reviewers. OpenCode and Codex have local CLI adapters that run repository reviews with read-only controls. The app asks before code is sent to the selected tool's configured model and stores the returned report locally; it does not post review comments to GitHub. Other reviewer cards remain setup links or hand-offs until their own supported adapters are implemented. The workspace also supports background scans, cancellation, finding triage, a saved chat per provider and scan, history, and report export. On Windows, `crc-desktop` is installed as a GUI script and does not open an extra console window. On Linux, install the matching `python3-tk` package if Tkinter is not included with your Python interpreter.
 
 ### Configure a custom scanner
 
