@@ -21,7 +21,7 @@ Initial desktop targets are Pop!_OS/Linux and Windows. Installation must work fo
 - GitHub is first for hosted review. GitLab, Bitbucket, and other/self-hosted Git platforms are intended through separate connectors; support must be implemented and verified rather than implied.
 - The report is always available in the application. On the completed report, an unchecked-by-default **Publish comments/checks** checkbox controls whether the review's eligible findings are sent to the hosting platform. Checking it enables publication; the user must still choose the explicit Publish action. Read-only access is used until publication; write access is requested only then.
 - The initial analysis-toolchain under consideration is Semgrep CE, Gitleaks, Trivy, OSV-Scanner, and Reviewdog. Reviewdog presents/forwards results; it is not a scanner.
-- AI reviewers are a separate, optional category. Their code handling, platform support, cost, and terms differ. No code is sent to an AI service by default.
+- AI reviewers are a separate category. **NVIDIA NIM API support is required for the owner's workflow and is a first-class provider integration.** The downloadable product must let other users configure their own provider/key; never bundle or hard-code the owner's key. Local and other remote providers may be added as alternatives. No code is sent to an AI service by default.
 - The user wants a dedicated integration and user-facing panel for each enabled tool/service.
 - The product is intended for external download and use. Public release requires a project-license decision and a full redistribution/dependency audit.
 - Do not let any reviewer edit the repository, commit, or merge changes. Code review and comment publication are distinct from code modification.
@@ -91,7 +91,7 @@ Prefer native adapters where officially supported. Do not copy another product's
 
 | Requested integration | Intended role | First verification |
 |---|---|---|
-| PR-Agent | Open-source/self-hostable AI reviewer; prior discussion paired it with an NVIDIA API for GitHub. | Current community maintenance, local diff support, host permissions, model endpoint/data flow. |
+| PR-Agent | Open-source/self-hostable AI reviewer; prior discussion paired it with NVIDIA NIM for GitHub. | Verify community maintenance, local diff support, host permissions, NVIDIA model configuration, and data flow. |
 | CodeRabbit | Hosted reviewer with multiple Git-platform integrations. | Supported APIs/results, external code processing, account plan and cost. |
 | Greptile | Hosted reviewer emphasizing repository context. | Supported platforms, results/API surface, and hosted data handling. |
 | Qodo Code Review | Hosted multi-platform reviewer, separate from community PR-Agent. | Product plan, current platform support, and supported integration contract. |
@@ -107,11 +107,15 @@ Every normalized finding retains the originating tool/agent and rule, severity, 
 
 Show results in the app regardless of publication choice. On the completed report, **Publish comments/checks** is unchecked by default. If the user checks it and chooses Publish, send the eligible findings for that review using the selected provider's supported review/check format. If unchecked, do not send comments and use read-only host permissions. Never commit, edit source, approve automatically, or merge.
 
-### 5.5 AI and privacy
+### 5.5 AI, NVIDIA API, and privacy
 
-Local scanners and local reviewers run on the user's computer where supported. For hosted AI, state what will leave the computer, which provider receives it, and any required account or cost. The default is no code upload. Require explicit opt-in per provider/review before sending source or diffs. Keep AI output visibly labeled as model-generated and separate from verified scanner results.
+NVIDIA NIM is the required first remote model-provider integration for the owner's workflow. NVIDIA documents an OpenAI-compatible Chat Completions endpoint at `https://integrate.api.nvidia.com/v1/chat/completions`; model IDs remain configurable and must be checked against NVIDIA's current catalog. The existing generic OpenAI-compatible provider can be reused only after an end-to-end NVIDIA API test confirms authentication, request shape, response parsing, limits, and errors.
 
-Store local history and settings in per-user application data. Use the operating system credential store where available. Never place API keys in review history or project files.
+For the downloadable product, users enter their own NVIDIA API key and select a model. No key is embedded in the application or stored in project files, scan history, or logs. Use the operating system credential store where available. The provider panel shows which model/provider is selected and whether the endpoint is local or remote.
+
+Local scanners and local reviewers run on the user's computer where supported. Before a review sends source code or diffs to NVIDIA or another hosted AI provider, show the destination and data scope and require a separate explicit **Send code to AI provider** opt-in. It is off by default. Review findings in the application independently of this setting. Keep AI output visibly labeled as model-generated and separate from verified scanner results.
+
+Store local history and settings in per-user application data. Do not record API keys in logs or history.
 
 ### 5.6 User interface and distribution
 
@@ -159,7 +163,8 @@ Package for clean Linux and Windows user accounts. Detect tools and show missing
 **Gate:** local and remote snapshots produce the same finding contract, while host-specific details remain in connectors.
 
 ### Phase 4 — Optional review agents
-- Implement the plugin/capability contract and evaluate PR-Agent and OpenCode first as local/self-hostable candidates.
+- Implement the plugin/capability contract and verify NVIDIA NIM API as the required first remote model provider, including an end-to-end review with a user-supplied key and configurable model ID.
+- Evaluate PR-Agent and OpenCode as local/self-hostable reviewers that can use NVIDIA NIM where supported.
 - Evaluate CodeRabbit, Greptile, Qodo, Copilot, and Codex for supported APIs/CLIs and lawful integration.
 - Add a dedicated panel for each of the seven requested integrations, labeling unavailable native automation as import/connection or external hand-off.
 - Add local Ollama/LM Studio and remote provider tests only where the selected review agent uses them; do not require a model.
@@ -195,7 +200,8 @@ Package for clean Linux and Windows user accounts. Detect tools and show missing
 2. What is the project's license?
 3. Which hosted platforms should follow GitHub first, if the planned GitLab-then-Bitbucket order should change?
 4. Which of the seven AI-review targets expose a stable interface CODE-REVIEW-CENTER can operate or consume, and which are external hand-offs?
-5. Which result types can each host publish as review comments/checks?
+5. Which NVIDIA model ID is preferred after a real review-quality and cost check?
+6. Which result types can each host publish as review comments/checks?
 
 Until these choices and gates are resolved, call the software an early-development MVP, not a public-ready product.
 
@@ -210,3 +216,4 @@ Until these choices and gates are resolved, call the software an early-developme
 - [GitHub Copilot Code Review](https://docs.github.com/en/copilot/concepts/agents/code-review)
 - [Codex pull-request review guidance](https://help.openai.com/en/articles/20001552-review-pull-requests-with-codex)
 - [Qodo Code Review configuration](https://docs.qodo.ai/qodo-documentation/code-review/get-started/configuration-overview/configuration-file)
+- [NVIDIA NIM LLM API reference](https://docs.api.nvidia.com/nim/reference/llm-apis)
