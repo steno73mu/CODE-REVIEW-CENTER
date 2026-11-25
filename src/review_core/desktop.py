@@ -40,8 +40,54 @@ def main() -> int:
 
     root = tk.Tk()
     root.title("CODE-REVIEW-CENTER")
-    root.geometry("1180x760")
-    root.minsize(900, 600)
+    root.geometry("1440x900")
+    root.minsize(1040, 700)
+
+    colors = {
+        "bg": "#101114",
+        "panel": "#17191e",
+        "card": "#1e2026",
+        "card_hover": "#262930",
+        "border": "#2d3038",
+        "text": "#f1f2f4",
+        "muted": "#a0a4ad",
+        "subtle": "#737984",
+        "red": "#d83a46",
+        "red_hover": "#ed4a56",
+        "red_soft": "#3b1e23",
+        "green": "#45b77b",
+        "amber": "#e3a544",
+        "blue": "#70a9e8",
+    }
+
+    root.configure(bg=colors["bg"])
+    style = ttk.Style(root)
+    if "clam" in style.theme_names():
+        style.theme_use("clam")
+    style.configure(".", font=("TkDefaultFont", 10))
+    style.configure("TFrame", background=colors["bg"])
+    style.configure("Surface.TFrame", background=colors["panel"])
+    style.configure("Card.TFrame", background=colors["card"], borderwidth=0, relief="flat")
+    style.configure("TLabel", background=colors["bg"], foreground=colors["text"])
+    style.configure("Surface.TLabel", background=colors["panel"], foreground=colors["text"])
+    style.configure("Card.TLabel", background=colors["card"], foreground=colors["text"])
+    style.configure("Muted.TLabel", background=colors["bg"], foreground=colors["muted"])
+    style.configure("CardMuted.TLabel", background=colors["card"], foreground=colors["muted"])
+    style.configure("Brand.TLabel", font=("TkDefaultFont", 15, "bold"), foreground=colors["text"])
+    style.configure("PageTitle.TLabel", font=("TkDefaultFont", 22, "bold"), foreground=colors["text"])
+    style.configure("Section.TLabel", font=("TkDefaultFont", 10, "bold"), foreground=colors["muted"])
+    style.configure("Metric.TLabel", font=("TkDefaultFont", 22, "bold"), background=colors["card"])
+    style.configure("TButton", background=colors["card_hover"], foreground=colors["text"], padding=(10, 7), borderwidth=0)
+    style.map("TButton", background=[("active", "#333741"), ("disabled", colors["panel"])], foreground=[("disabled", colors["subtle"])])
+    style.configure("Accent.TButton", background=colors["red"], foreground="#ffffff", padding=(13, 8), borderwidth=0, font=("TkDefaultFont", 10, "bold"))
+    style.map("Accent.TButton", background=[("active", colors["red_hover"]), ("disabled", "#633138")], foreground=[("disabled", "#c5a7aa")])
+    style.configure("Treeview", background=colors["panel"], fieldbackground=colors["panel"], foreground=colors["text"], rowheight=30, borderwidth=0, relief="flat")
+    style.map("Treeview", background=[("selected", "#46242a")], foreground=[("selected", "#ffffff")])
+    style.configure("Treeview.Heading", background=colors["card"], foreground=colors["muted"], padding=(8, 8), borderwidth=0, font=("TkDefaultFont", 9, "bold"))
+    style.map("Treeview.Heading", background=[("active", colors["card_hover"])])
+    style.configure("TNotebook", background=colors["bg"], borderwidth=0, tabmargins=(0, 0, 0, 0))
+    style.configure("TNotebook.Tab", background=colors["panel"], foreground=colors["muted"], padding=(14, 9), borderwidth=0)
+    style.map("TNotebook.Tab", background=[("selected", colors["card"]), ("active", colors["card_hover"])], foreground=[("selected", colors["text"]), ("active", colors["text"])])
 
     project_rows = []
     scanner_rows = []
@@ -51,82 +97,158 @@ def main() -> int:
     current_session_id = None
     current_findings = []
 
-    outer = ttk.Frame(root, padding=12)
+    project_metric_var = tk.StringVar(value="0")
+    scanner_metric_var = tk.StringVar(value="0")
+    reviewer_metric_var = tk.StringVar(value="0")
+    findings_metric_var = tk.StringVar(value="—")
+    workspace_hint_var = tk.StringVar(value="Choose a local folder or connect a GitHub repository")
+
+    outer = ttk.Frame(root, padding=14)
     outer.pack(fill="both", expand=True)
+
     header = ttk.Frame(outer)
-    header.pack(fill="x", pady=(0, 10))
-    ttk.Label(header, text="CODE-REVIEW-CENTER", font=("TkDefaultFont", 18, "bold")).pack(side="left")
-    status_var = tk.StringVar(value="Local workspace ready")
-    ttk.Label(header, textvariable=status_var).pack(side="right")
+    header.pack(fill="x", pady=(0, 14))
+    brand_block = ttk.Frame(header)
+    brand_block.pack(side="left", fill="y")
+    tk.Label(brand_block, text="●", bg=colors["bg"], fg=colors["red"], font=("TkDefaultFont", 18, "bold")).pack(side="left", padx=(0, 8))
+    ttk.Label(brand_block, text="CODE-REVIEW-CENTER", style="Brand.TLabel").pack(side="left")
+    status_var = tk.StringVar(value="Workspace ready")
+    status_badge = tk.Label(header, textvariable=status_var, bg=colors["red_soft"], fg="#f08b93", padx=12, pady=7, font=("TkDefaultFont", 9, "bold"))
+    status_badge.pack(side="right")
 
     panes = ttk.Panedwindow(outer, orient="horizontal")
     panes.pack(fill="both", expand=True)
-    sidebar = ttk.Frame(panes, padding=(0, 0, 10, 0), width=280)
-    workspace = ttk.Frame(panes)
+    sidebar = ttk.Frame(panes, style="Surface.TFrame", padding=14, width=292)
+    workspace = ttk.Frame(panes, padding=(18, 0, 0, 0))
     panes.add(sidebar, weight=1)
-    panes.add(workspace, weight=4)
+    panes.add(workspace, weight=5)
 
-    ttk.Label(sidebar, text="PROJECTS", font=("TkDefaultFont", 10, "bold")).pack(anchor="w")
-    project_list = tk.Listbox(sidebar, height=10, exportselection=False)
-    project_list.pack(fill="x", pady=(4, 6))
-    project_buttons = ttk.Frame(sidebar)
+    ttk.Label(sidebar, text="WORKSPACE", style="Section.TLabel").pack(anchor="w", pady=(0, 8))
+    ttk.Label(sidebar, text="Projects", style="Surface.TLabel", font=("TkDefaultFont", 11, "bold")).pack(anchor="w")
+    project_list = tk.Listbox(
+        sidebar, height=6, exportselection=False, bg=colors["card"], fg=colors["text"],
+        selectbackground=colors["red"], selectforeground="#ffffff", relief="flat",
+        highlightthickness=1, highlightbackground=colors["border"], highlightcolor=colors["red"],
+        activestyle="none", borderwidth=0, font=("TkDefaultFont", 10),
+    )
+    project_list.pack(fill="x", pady=(7, 8))
+    project_buttons = ttk.Frame(sidebar, style="Surface.TFrame")
     project_buttons.pack(fill="x")
-    ttk.Button(project_buttons, text="Add folder", command=lambda: add_project()).pack(side="left")
-    ttk.Button(project_buttons, text="Add GitHub", command=lambda: add_github_project()).pack(side="left", padx=4)
-    ttk.Button(project_buttons, text="Update", command=lambda: update_project()).pack(side="left")
-    ttk.Button(project_buttons, text="Remove", command=lambda: remove_project()).pack(side="left", padx=4)
+    ttk.Button(project_buttons, text="+ Folder", command=lambda: add_project()).pack(side="left")
+    ttk.Button(project_buttons, text="+ GitHub", command=lambda: add_github_project()).pack(side="left", padx=5)
+    project_manage = ttk.Frame(sidebar, style="Surface.TFrame")
+    project_manage.pack(fill="x", pady=(6, 0))
+    ttk.Button(project_manage, text="Update", command=lambda: update_project()).pack(side="left")
+    ttk.Button(project_manage, text="Remove", command=lambda: remove_project()).pack(side="left", padx=5)
 
-    ttk.Separator(sidebar).pack(fill="x", pady=12)
-    ttk.Label(sidebar, text="SCANNER PROFILES", font=("TkDefaultFont", 10, "bold")).pack(anchor="w")
-    scanner_list = tk.Listbox(sidebar, height=10, exportselection=False)
-    scanner_list.pack(fill="x", pady=(4, 6))
-    scanner_buttons = ttk.Frame(sidebar)
+    ttk.Separator(sidebar).pack(fill="x", pady=14)
+    ttk.Label(sidebar, text="ANALYSIS TOOLS", style="Section.TLabel").pack(anchor="w", pady=(0, 8))
+    ttk.Label(sidebar, text="Scanner profiles", style="Surface.TLabel", font=("TkDefaultFont", 11, "bold")).pack(anchor="w")
+    scanner_list = tk.Listbox(
+        sidebar, height=6, exportselection=False, bg=colors["card"], fg=colors["text"],
+        selectbackground=colors["red"], selectforeground="#ffffff", relief="flat",
+        highlightthickness=1, highlightbackground=colors["border"], highlightcolor=colors["red"],
+        activestyle="none", borderwidth=0, font=("TkDefaultFont", 10),
+    )
+    scanner_list.pack(fill="x", pady=(7, 8))
+    scanner_buttons = ttk.Frame(sidebar, style="Surface.TFrame")
     scanner_buttons.pack(fill="x")
-    ttk.Button(scanner_buttons, text="Add profile", command=lambda: add_scanner()).pack(side="left")
-    ttk.Button(scanner_buttons, text="Remove", command=lambda: remove_scanner()).pack(side="left", padx=4)
+    ttk.Button(scanner_buttons, text="+ Add profile", command=lambda: add_scanner()).pack(side="left")
+    ttk.Button(scanner_buttons, text="Remove", command=lambda: remove_scanner()).pack(side="left", padx=5)
 
-    ttk.Separator(sidebar).pack(fill="x", pady=12)
-    ttk.Label(sidebar, text="AI REVIEWERS", font=("TkDefaultFont", 10, "bold")).pack(anchor="w")
-    provider_list = tk.Listbox(sidebar, height=6, exportselection=False)
-    provider_list.pack(fill="x", pady=(4, 6))
-    provider_buttons = ttk.Frame(sidebar)
+    ttk.Separator(sidebar).pack(fill="x", pady=14)
+    ttk.Label(sidebar, text="AI REVIEWERS", style="Section.TLabel").pack(anchor="w", pady=(0, 8))
+    provider_list = tk.Listbox(
+        sidebar, height=5, exportselection=False, bg=colors["card"], fg=colors["text"],
+        selectbackground=colors["red"], selectforeground="#ffffff", relief="flat",
+        highlightthickness=1, highlightbackground=colors["border"], highlightcolor=colors["red"],
+        activestyle="none", borderwidth=0, font=("TkDefaultFont", 10),
+    )
+    provider_list.pack(fill="x", pady=(0, 8))
+    provider_buttons = ttk.Frame(sidebar, style="Surface.TFrame")
     provider_buttons.pack(fill="x")
-    ttk.Button(provider_buttons, text="Add provider", command=lambda: add_provider()).pack(side="left")
-    ttk.Button(provider_buttons, text="Remove", command=lambda: remove_provider()).pack(side="left", padx=4)
+    ttk.Button(provider_buttons, text="+ Add reviewer", command=lambda: add_provider()).pack(side="left")
+    ttk.Button(provider_buttons, text="Remove", command=lambda: remove_provider()).pack(side="left", padx=5)
 
-    actions = ttk.Frame(workspace)
-    actions.pack(fill="x", pady=(0, 8))
-    scan_button = ttk.Button(actions, text="Run review", command=lambda: start_scan())
+    page_header = ttk.Frame(workspace)
+    page_header.pack(fill="x", pady=(0, 14))
+    title_block = ttk.Frame(page_header)
+    title_block.pack(side="left", fill="x", expand=True)
+    ttk.Label(title_block, text="Review dashboard", style="PageTitle.TLabel").pack(anchor="w")
+    ttk.Label(title_block, textvariable=workspace_hint_var, style="Muted.TLabel").pack(anchor="w", pady=(4, 0))
+    actions = ttk.Frame(page_header)
+    actions.pack(side="right", anchor="e")
+    scan_button = ttk.Button(actions, text="Run review", style="Accent.TButton", command=lambda: start_scan())
     scan_button.pack(side="left")
     cancel_button = ttk.Button(actions, text="Cancel", command=lambda: cancellation.set(), state="disabled")
-    cancel_button.pack(side="left", padx=6)
+    cancel_button.pack(side="left", padx=(7, 0))
+
+    summary = ttk.Frame(workspace)
+    summary.pack(fill="x", pady=(0, 14))
+
+    def metric_card(parent, label, value_var, hint, accent=False):
+        card = ttk.Frame(parent, style="Card.TFrame", padding=(13, 12))
+        card.pack(side="left", fill="both", expand=True, padx=(0, 9))
+        tk.Frame(card, bg=colors["red"] if accent else colors["border"], height=2).pack(fill="x", pady=(0, 9))
+        ttk.Label(card, text=label.upper(), style="CardMuted.TLabel", font=("TkDefaultFont", 8, "bold")).pack(anchor="w")
+        ttk.Label(card, textvariable=value_var, style="Metric.TLabel", foreground=colors["red"] if accent else colors["text"]).pack(anchor="w", pady=(4, 2))
+        ttk.Label(card, text=hint, style="CardMuted.TLabel", font=("TkDefaultFont", 8)).pack(anchor="w")
+        return card
+
+    metric_card(summary, "Repositories", project_metric_var, "local and connected")
+    metric_card(summary, "Active scanners", scanner_metric_var, "enabled profiles")
+    metric_card(summary, "AI reviewers", reviewer_metric_var, "configured providers")
+    metric_card(summary, "Findings", findings_metric_var, "latest review", accent=True)
 
     notebook = ttk.Notebook(workspace)
     notebook.pack(fill="both", expand=True)
-    findings_tab = ttk.Frame(notebook, padding=6)
-    history_tab = ttk.Frame(notebook, padding=6)
+    findings_tab = ttk.Frame(notebook, padding=10)
+    history_tab = ttk.Frame(notebook, padding=10)
     notebook.add(findings_tab, text="Findings")
-    notebook.add(history_tab, text="History")
+    notebook.add(history_tab, text="Review history")
 
-    finding_columns = ("severity", "triage", "tool", "rule", "path", "line", "message")
-    finding_tree = ttk.Treeview(findings_tab, columns=finding_columns, show="headings")
-    for column, width in (("severity", 80), ("triage", 110), ("tool", 90), ("rule", 130), ("path", 160), ("line", 55), ("message", 380)):
-        finding_tree.heading(column, text=column.title())
-        finding_tree.column(column, width=width, anchor="w")
     triage_actions = ttk.Frame(findings_tab)
-    triage_actions.pack(fill="x", pady=(0, 6))
+    triage_actions.pack(fill="x", pady=(0, 8))
+    ttk.Label(triage_actions, text="Findings from the selected review", style="Section.TLabel").pack(side="left", padx=(0, 12))
     ttk.Button(triage_actions, text="Accepted", command=lambda: set_finding_status("accepted")).pack(side="left")
-    ttk.Button(triage_actions, text="False positive", command=lambda: set_finding_status("false_positive")).pack(side="left", padx=4)
+    ttk.Button(triage_actions, text="False positive", command=lambda: set_finding_status("false_positive")).pack(side="left", padx=5)
     ttk.Button(triage_actions, text="Fixed", command=lambda: set_finding_status("fixed")).pack(side="left")
-    ttk.Button(triage_actions, text="Reopen", command=lambda: set_finding_status("open")).pack(side="left", padx=4)
+    ttk.Button(triage_actions, text="Reopen", command=lambda: set_finding_status("open")).pack(side="left", padx=5)
 
+    findings_pane = ttk.Panedwindow(findings_tab, orient="horizontal")
+    findings_pane.pack(fill="both", expand=True)
+    findings_table_panel = ttk.Frame(findings_pane, style="Surface.TFrame", padding=8)
+    finding_columns = ("severity", "triage", "tool", "rule", "path", "line", "message")
+    finding_tree = ttk.Treeview(findings_table_panel, columns=finding_columns, show="headings", selectmode="browse")
+    for column, width in (("severity", 78), ("triage", 95), ("tool", 92), ("rule", 118), ("path", 170), ("line", 52), ("message", 300)):
+        finding_tree.heading(column, text=column.title())
+        finding_tree.column(column, width=width, anchor="w", stretch=column in {"path", "message"})
+    finding_tree.tag_configure("severity-critical", foreground="#ff737d")
+    finding_tree.tag_configure("severity-high", foreground="#ed727c")
+    finding_tree.tag_configure("severity-medium", foreground="#e3a544")
+    finding_tree.tag_configure("severity-low", foreground="#86b4e6")
+    finding_tree.tag_configure("severity-info", foreground=colors["muted"])
     finding_tree.pack(fill="both", expand=True)
+    finding_tree.bind("<<TreeviewSelect>>", lambda _event: show_finding_detail())
+    findings_pane.add(findings_table_panel, weight=4)
+
+    detail_panel = ttk.Frame(findings_pane, style="Surface.TFrame", padding=12)
+    ttk.Label(detail_panel, text="FINDING DETAILS", style="Section.TLabel").pack(anchor="w")
+    finding_detail = tk.Text(
+        detail_panel, wrap="word", height=12, bg=colors["panel"], fg=colors["text"],
+        insertbackground=colors["text"], selectbackground=colors["red"], relief="flat",
+        borderwidth=0, padx=2, pady=10, font=("TkDefaultFont", 10),
+    )
+    finding_detail.pack(fill="both", expand=True, pady=(5, 0))
+    finding_detail.insert("1.0", "Select a finding to inspect its message, source, rule, and location.")
+    finding_detail.configure(state="disabled")
+    findings_pane.add(detail_panel, weight=2)
 
     history_columns = ("session_id", "created_at", "status", "duration_seconds")
     history_actions = ttk.Frame(history_tab)
-    history_actions.pack(fill="x", pady=(0, 6))
+    history_actions.pack(fill="x", pady=(0, 8))
     ttk.Button(history_actions, text="AI review selected session", command=lambda: review_selected()).pack(side="left")
-    ttk.Button(history_actions, text="Export report", command=lambda: export_selected()).pack(side="left", padx=6)
+    ttk.Button(history_actions, text="Export report", command=lambda: export_selected()).pack(side="left", padx=7)
     history_tree = ttk.Treeview(history_tab, columns=history_columns, show="headings", height=12)
     for column, width in (("session_id", 280), ("created_at", 240), ("status", 120), ("duration_seconds", 120)):
         history_tree.heading(column, text=column.replace("_", " ").title())
@@ -136,10 +258,10 @@ def main() -> int:
 
     footer = ttk.Label(
         outer,
-        text="Only trusted local scanner executables are launched. Project scripts and hooks are never run.",
-        foreground="#555555",
+        text="Reviewed code stays in the local workspace unless you explicitly send it to a configured AI provider.",
+        style="Muted.TLabel",
     )
-    footer.pack(anchor="w", pady=(8, 0))
+    footer.pack(anchor="w", pady=(10, 0))
 
     def selected_project():
         selection = project_list.curselection()
