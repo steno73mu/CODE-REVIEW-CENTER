@@ -11,7 +11,8 @@ import uuid
 
 from .configuration import (
     ProviderConfigStore, ProviderProfile, ScannerConfigStore, ScannerProfile,
-    SCANNER_PRESET_NAMES, create_scanner_preset,
+    SCANNER_PRESET_NAMES, PROVIDER_PRESET_NAMES,
+    create_scanner_preset, create_provider_preset,
 )
 from .providers import AIReviewClient, AIReviewError
 from .application import scan_project
@@ -95,6 +96,12 @@ def _parser() -> argparse.ArgumentParser:
     add_provider.add_argument("--api-key-env")
     add_provider.add_argument("--timeout", type=float, default=60.0)
     provider_sub.add_parser("list")
+    provider_preset = provider_sub.add_parser("preset")
+    provider_preset_sub = provider_preset.add_subparsers(dest="preset_action", required=True)
+    provider_preset_sub.add_parser("list")
+    nvidia_preset = provider_preset_sub.add_parser("add")
+    nvidia_preset.add_argument("preset_name", choices=PROVIDER_PRESET_NAMES)
+    nvidia_preset.add_argument("--model", default=None)
     remove_provider = provider_sub.add_parser("remove")
     remove_provider.add_argument("provider_id")
 
@@ -259,6 +266,13 @@ def main(argv: list[str] | None = None) -> int:
                 _json(asdict(profile))
             elif args.action == "list":
                 _json([asdict(item) for item in providers.list_profiles()])
+            elif args.action == "preset":
+                if args.preset_action == "list":
+                    _json([{"name": name} for name in PROVIDER_PRESET_NAMES])
+                else:
+                    profile = create_provider_preset(args.preset_name, model=args.model)
+                    providers.save(profile)
+                    _json(asdict(profile))
             else:
                 if not providers.remove(args.provider_id):
                     raise ValueError(f"unknown provider: {args.provider_id}")
