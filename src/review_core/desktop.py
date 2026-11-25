@@ -21,7 +21,10 @@ def main() -> int:
         ) from exc
 
     from .cli import ensure_data_directory
-    from .configuration import ProviderConfigStore, ProviderProfile, ScannerConfigStore, ScannerProfile
+    from .configuration import (
+        ProviderConfigStore, ProviderProfile, ScannerConfigStore, ScannerProfile,
+        create_scanner_preset,
+    )
     from .providers import AIReviewClient
     from .finding import Finding
     from .application import scan_project
@@ -153,6 +156,7 @@ def main() -> int:
     scanner_list.pack(fill="x", pady=(7, 8))
     scanner_buttons = ttk.Frame(sidebar, style="Surface.TFrame")
     scanner_buttons.pack(fill="x")
+    ttk.Button(scanner_buttons, text="+ Preset", command=lambda: add_scanner_preset()).pack(side="left")
     ttk.Button(scanner_buttons, text="+ Add profile", command=lambda: add_scanner()).pack(side="left")
     ttk.Button(scanner_buttons, text="Remove", command=lambda: remove_scanner()).pack(side="left", padx=5)
 
@@ -375,6 +379,21 @@ def main() -> int:
         if messagebox.askyesno("Remove project", f"Remove {item.name} from this workspace? Source files will not be changed."):
             projects.remove(item.project_id)
             refresh_projects()
+
+    def add_scanner_preset():
+        preset_name = simpledialog.askstring(
+            "Scanner preset",
+            "Choose: semgrep, gitleaks, trivy, or osv-scanner",
+        )
+        if not preset_name:
+            return
+        try:
+            profile = create_scanner_preset(preset_name)
+            scanners.save(profile)
+            refresh_scanners()
+            status_var.set(f"{profile.name} preset added")
+        except (ValueError, TypeError) as exc:
+            messagebox.showerror("Scanner preset", str(exc))
 
     def add_scanner():
         scanner_id = simpledialog.askstring("Scanner profile", "Profile ID (e.g. semgrep-local):")
