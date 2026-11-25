@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import queue
+import re
 import threading
 import uuid
 
@@ -26,6 +28,7 @@ def main() -> int:
         SCANNER_PRESET_NAMES, create_scanner_preset, create_provider_preset,
     )
     from .providers import AIReviewClient
+    from .review_agents import REVIEW_AGENTS
     from .finding import Finding
     from .application import scan_project
     from .projects import ProjectRegistry
@@ -45,6 +48,49 @@ def main() -> int:
     root.title("CODE-REVIEW-CENTER")
     root.geometry("1440x900")
     root.minsize(1040, 700)
+    app_logo = None
+    brand_logo = None
+    logo_path = Path(__file__).resolve().parent / "assets" / "code-review-center.png"
+    try:
+        app_logo = tk.PhotoImage(file=str(logo_path))
+        root.iconphoto(True, app_logo)
+        brand_logo = app_logo.subsample(8, 8)
+        root._crc_app_logo = app_logo
+        root._crc_brand_logo = brand_logo
+    except tk.TclError:
+        pass
+
+    def show_edit_context_menu(event):
+        widget = event.widget
+        if widget.winfo_class() not in {"Entry", "TEntry", "Text", "TCombobox", "TSpinbox"}:
+            return
+        menu = tk.Menu(widget, tearoff=False)
+        menu.add_command(label="Cut", accelerator="Ctrl+X", command=lambda: widget.event_generate("<<Cut>>"))
+        menu.add_command(label="Copy", accelerator="Ctrl+C", command=lambda: widget.event_generate("<<Copy>>"))
+        menu.add_command(label="Paste", accelerator="Ctrl+V", command=lambda: widget.event_generate("<<Paste>>"))
+        menu.add_separator()
+
+        def select_all():
+            if widget.winfo_class() == "Text":
+                widget.tag_add("sel", "1.0", "end-1c")
+            else:
+                widget.selection_range(0, "end")
+
+        menu.add_command(label="Select all", accelerator="Ctrl+A", command=select_all)
+        try:
+            menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            menu.grab_release()
+        return "break"
+
+    def copy_from_focused_widget(_event=None):
+        widget = root.focus_get()
+        if widget is not None and widget.winfo_class() in {"Entry", "TEntry", "Text", "TCombobox", "TSpinbox"}:
+            widget.event_generate("<<Copy>>")
+            return "break"
+
+    root.bind_all("<Button-3>", show_edit_context_menu, add="+")
+    root.bind_all("<Control-Shift-C>", copy_from_focused_widget, add="+")
 
     colors = {
         "bg": "#101114",
@@ -115,7 +161,10 @@ def main() -> int:
     header.pack(fill="x", pady=(0, 14))
     brand_block = ttk.Frame(header)
     brand_block.pack(side="left", fill="y")
-    tk.Label(brand_block, text="●", bg=colors["bg"], fg=colors["red"], font=("TkDefaultFont", 18, "bold")).pack(side="left", padx=(0, 8))
+    if brand_logo is not None:
+        tk.Label(brand_block, image=brand_logo, bg=colors["bg"]).pack(side="left", padx=(0, 9))
+    else:
+        tk.Label(brand_block, text="●", bg=colors["bg"], fg=colors["red"], font=("TkDefaultFont", 18, "bold")).pack(side="left", padx=(0, 8))
     ttk.Label(brand_block, text="CODE-REVIEW-CENTER", style="Brand.TLabel").pack(side="left")
     status_var = tk.StringVar(value="Workspace ready")
     status_badge = tk.Label(header, textvariable=status_var, bg=colors["red_soft"], fg="#f08b93", padx=12, pady=7, font=("TkDefaultFont", 9, "bold"))
@@ -163,7 +212,7 @@ def main() -> int:
     ttk.Button(scanner_buttons, text="Remove", command=lambda: remove_scanner()).pack(side="left", padx=5)
 
     ttk.Separator(sidebar).pack(fill="x", pady=14)
-    ttk.Label(sidebar, text="AI REVIEWERS", style="Section.TLabel").pack(anchor="w", pady=(0, 8))
+    ttk.Label(sidebar, text="MODEL PROVIDERS", style="Section.TLabel").pack(anchor="w", pady=(0, 8))
     provider_list = tk.Listbox(
         sidebar, height=5, exportselection=False, bg=colors["card"], fg=colors["text"],
         selectbackground=colors["red"], selectforeground="#ffffff", relief="flat",
@@ -173,8 +222,7 @@ def main() -> int:
     provider_list.pack(fill="x", pady=(0, 8))
     provider_buttons = ttk.Frame(sidebar, style="Surface.TFrame")
     provider_buttons.pack(fill="x")
-    ttk.Button(provider_buttons, text="+ NVIDIA", command=lambda: add_nvidia_provider()).pack(side="left")
-    ttk.Button(provider_buttons, text="+ Add reviewer", command=lambda: add_provider()).pack(side="left", padx=(5, 0))
+    ttk.Button(provider_buttons, text="+ Provider", command=lambda: open_provider_setup("OpenAI-compatible API")).pack(side="left")
     ttk.Button(provider_buttons, text="Remove", command=lambda: remove_provider()).pack(side="left", padx=5)
 
     page_header = ttk.Frame(workspace)
@@ -204,7 +252,7 @@ def main() -> int:
 
     metric_card(summary, "Repositories", project_metric_var, "local and connected")
     metric_card(summary, "Active scanners", scanner_metric_var, "enabled profiles")
-    metric_card(summary, "AI reviewers", reviewer_metric_var, "configured providers")
+    metric_card(summary, "Model providers", reviewer_metric_var, "configured endpoints")
     metric_card(summary, "Findings", findings_metric_var, "latest review", accent=True)
 
     notebook = ttk.Notebook(workspace)
@@ -225,21 +273,148 @@ def main() -> int:
     integration_tabs.pack(fill="both", expand=True)
     scanner_integrations_tab = ttk.Frame(integration_tabs, padding=10)
     reviewer_integrations_tab = ttk.Frame(integration_tabs, padding=10)
+    review_agents_tab = ttk.Frame(integration_tabs, padding=10)
     integration_tabs.add(scanner_integrations_tab, text="Scanners")
-    integration_tabs.add(reviewer_integrations_tab, text="AI reviewers")
+    integration_tabs.add(review_agents_tab, text="Review agents")
+    integration_tabs.add(reviewer_integrations_tab, text="Model providers")
 
-    scanner_panel_tabs = ttk.Notebook(scanner_integrations_tab)
-    scanner_panel_tabs.pack(fill="both", expand=True)
+    import webbrowser
+    import shutil
+
+    ttk.Label(
+        review_agents_tab,
+        text="Independent reviewers",
+        style="PageTitle.TLabel",
+    ).pack(anchor="w")
+    ttk.Label(
+        review_agents_tab,
+        text=(
+            "Each card shows its own connection type. Hosted services open their setup page; "
+            "local agents are detected on this computer. A card does not claim CRC can run or publish a review until that adapter is implemented."
+        ),
+        style="Muted.TLabel",
+        wraplength=1050,
+        justify="left",
+    ).pack(anchor="w", pady=(4, 10))
+    review_agent_cards = ttk.Frame(review_agents_tab)
+    review_agent_cards.pack(fill="both", expand=True)
+    review_agent_cards.columnconfigure(0, weight=1)
+    review_agent_cards.columnconfigure(1, weight=1)
+    for index, agent in enumerate(REVIEW_AGENTS):
+        card = ttk.Frame(review_agent_cards, style="Card.TFrame", padding=14)
+        card.grid(row=index // 2, column=index % 2, sticky="nsew", padx=6, pady=6)
+        tk.Frame(card, bg=colors["red"], height=2).pack(fill="x", pady=(0, 9))
+        card_header = ttk.Frame(card, style="Card.TFrame")
+        card_header.pack(fill="x")
+        ttk.Label(
+            card_header,
+            text=agent.name,
+            style="Card.TLabel",
+            font=("TkDefaultFont", 13, "bold"),
+        ).pack(side="left", anchor="w")
+        agent_status = tk.StringVar(value="Checking…")
+        status_badge = tk.Label(
+            card_header,
+            textvariable=agent_status,
+            bg=colors["card"],
+            fg=colors["amber"],
+            font=("TkDefaultFont", 8, "bold"),
+        )
+        status_badge.pack(side="right", anchor="e")
+        ttk.Label(card, text=agent.category, style="CardMuted.TLabel").pack(anchor="w", pady=(7, 2))
+        ttk.Label(
+            card,
+            text=agent.description,
+            style="CardMuted.TLabel",
+            wraplength=570,
+            justify="left",
+        ).pack(anchor="w", fill="x", pady=(2, 5))
+        ttk.Label(card, text=f"CRC connection: {agent.integration}", style="CardMuted.TLabel").pack(anchor="w")
+        if agent.executable:
+            executable_found = shutil.which(agent.executable) is not None
+            if agent.agent_id == "codex-review":
+                agent_status.set("CLI found · hand-off only" if executable_found else "Web hand-off")
+            else:
+                agent_status.set("CLI found · adapter pending" if executable_found else "CLI not found")
+            status_badge.configure(fg=colors["green"] if executable_found else colors["amber"])
+        else:
+            agent_status.set("External setup")
+            status_badge.configure(fg=colors["blue"])
+        ttk.Button(
+            card,
+            text="Open setup",
+            command=lambda url=agent.official_url: webbrowser.open(url),
+        ).pack(anchor="w", pady=(10, 0))
+
+    provider_toolbar = ttk.Frame(reviewer_integrations_tab)
+    provider_toolbar.pack(fill="x", pady=(0, 10))
+    ttk.Label(provider_toolbar, text="AI providers", style="PageTitle.TLabel").pack(side="left")
+    ttk.Button(
+        provider_toolbar,
+        text="+ Add provider",
+        style="Accent.TButton",
+        command=lambda: open_provider_setup("OpenAI-compatible API"),
+    ).pack(side="right")
+
+    provider_setup = ttk.Frame(reviewer_integrations_tab, style="Card.TFrame", padding=16)
+    provider_setup.pack(fill="x", pady=(0, 12))
+    ttk.Label(provider_setup, text="Connect a model provider", style="Card.TLabel", font=("TkDefaultFont", 15, "bold")).pack(anchor="w")
+    ttk.Label(
+        provider_setup,
+        text="Choose a hosted service or a local model. API keys stay in your environment and are never saved in this profile.",
+        style="CardMuted.TLabel",
+        wraplength=900,
+        justify="left",
+    ).pack(anchor="w", pady=(4, 12))
+    provider_form = ttk.Frame(provider_setup, style="Card.TFrame")
+    provider_form.pack(fill="x")
+    provider_kind_var = tk.StringVar(value="NVIDIA NIM")
+    provider_name_var = tk.StringVar()
+    provider_url_var = tk.StringVar()
+    provider_model_var = tk.StringVar()
+    provider_key_env_var = tk.StringVar()
+    provider_timeout_var = tk.StringVar(value="60")
+    provider_edit_id_var = tk.StringVar()
+    provider_templates = ("NVIDIA NIM", "Ollama", "LM Studio", "OpenAI-compatible API")
+    provider_form.columnconfigure(1, weight=1)
+    provider_form.columnconfigure(3, weight=1)
+    ttk.Label(provider_form, text="Service", style="CardMuted.TLabel").grid(row=0, column=0, sticky="w", padx=(0, 8), pady=4)
+    provider_kind_combo = ttk.Combobox(provider_form, textvariable=provider_kind_var, values=provider_templates, state="readonly", width=24)
+    provider_kind_combo.grid(row=0, column=1, sticky="ew", padx=(0, 18), pady=4)
+    ttk.Label(provider_form, text="Display name", style="CardMuted.TLabel").grid(row=0, column=2, sticky="w", padx=(0, 8), pady=4)
+    provider_name_entry = ttk.Entry(provider_form, textvariable=provider_name_var)
+    provider_name_entry.grid(row=0, column=3, sticky="ew", pady=4)
+    ttk.Label(provider_form, text="API endpoint", style="CardMuted.TLabel").grid(row=1, column=0, sticky="w", padx=(0, 8), pady=4)
+    ttk.Entry(provider_form, textvariable=provider_url_var).grid(row=1, column=1, sticky="ew", padx=(0, 18), pady=4)
+    ttk.Label(provider_form, text="Model ID", style="CardMuted.TLabel").grid(row=1, column=2, sticky="w", padx=(0, 8), pady=4)
+    ttk.Entry(provider_form, textvariable=provider_model_var).grid(row=1, column=3, sticky="ew", pady=4)
+    ttk.Label(provider_form, text="API key variable name (optional)", style="CardMuted.TLabel").grid(row=2, column=0, sticky="w", padx=(0, 8), pady=4)
+    ttk.Entry(provider_form, textvariable=provider_key_env_var).grid(row=2, column=1, sticky="ew", padx=(0, 18), pady=4)
+    ttk.Label(provider_form, text="Timeout (seconds)", style="CardMuted.TLabel").grid(row=2, column=2, sticky="w", padx=(0, 8), pady=4)
+    ttk.Spinbox(provider_form, from_=1, to=900, textvariable=provider_timeout_var, width=8).grid(row=2, column=3, sticky="w", pady=4)
+    provider_form_actions = ttk.Frame(provider_form, style="Card.TFrame")
+    provider_form_actions.grid(row=3, column=0, columnspan=4, sticky="ew", pady=(10, 0))
+    ttk.Button(provider_form_actions, text="Save provider", style="Accent.TButton", command=lambda: save_provider_form()).pack(side="left")
+    provider_setup.pack_forget()
+    provider_cards_frame = ttk.Frame(reviewer_integrations_tab)
+    provider_cards_frame.pack(fill="both", expand=True)
+
+    ttk.Label(scanner_integrations_tab, text="Scanner integrations", style="PageTitle.TLabel").pack(anchor="w", pady=(0, 10))
+    scanner_cards_frame = ttk.Frame(scanner_integrations_tab)
+    scanner_cards_frame.pack(fill="both", expand=True)
+    scanner_cards_frame.columnconfigure(0, weight=1)
+    scanner_cards_frame.columnconfigure(1, weight=1)
     scanner_integration_panels = {}
-    for preset_name in SCANNER_PRESET_NAMES:
+    for index, preset_name in enumerate(SCANNER_PRESET_NAMES):
         scanner_profile = create_scanner_preset(preset_name)
-        panel = ttk.Frame(scanner_panel_tabs, padding=18)
-        scanner_panel_tabs.add(panel, text=scanner_profile.name)
-        ttk.Label(panel, text=scanner_profile.name, style="PageTitle.TLabel").pack(anchor="w")
+        panel = ttk.Frame(scanner_cards_frame, style="Card.TFrame", padding=16)
+        panel.grid(row=index // 2, column=index % 2, sticky="nsew", padx=6, pady=6)
+        tk.Frame(panel, bg=colors["red"], height=2).pack(fill="x", pady=(0, 10))
+        ttk.Label(panel, text=scanner_profile.name, style="Card.TLabel", font=("TkDefaultFont", 14, "bold")).pack(anchor="w")
         scanner_status = tk.StringVar(value="Checking setup…")
         scanner_detail = tk.StringVar(value="")
-        ttk.Label(panel, textvariable=scanner_status, style="Section.TLabel").pack(anchor="w", pady=(12, 4))
-        ttk.Label(panel, textvariable=scanner_detail, style="Muted.TLabel", wraplength=700, justify="left").pack(anchor="w")
+        ttk.Label(panel, textvariable=scanner_status, style="CardMuted.TLabel").pack(anchor="w", pady=(8, 4))
+        ttk.Label(panel, textvariable=scanner_detail, style="CardMuted.TLabel", wraplength=500, justify="left").pack(anchor="w")
         scanner_action = ttk.Button(panel, text="Add preset", command=lambda name=preset_name: toggle_scanner_preset(name))
         scanner_action.pack(anchor="w", pady=(14, 0))
         scanner_integration_panels[preset_name] = {
@@ -248,20 +423,6 @@ def main() -> int:
             "action": scanner_action,
             "profile_id": scanner_profile.scanner_id,
         }
-
-    reviewer_panel_tabs = ttk.Notebook(reviewer_integrations_tab)
-    reviewer_panel_tabs.pack(fill="both", expand=True)
-    reviewer_empty = ttk.Frame(reviewer_panel_tabs, padding=18)
-    reviewer_panel_tabs.add(reviewer_empty, text="Getting started")
-    ttk.Label(reviewer_empty, text="No AI reviewers configured", style="PageTitle.TLabel").pack(anchor="w")
-    ttk.Label(
-        reviewer_empty,
-        text="Add NVIDIA NIM, a local model endpoint, or another compatible reviewer from the sidebar.",
-        style="Muted.TLabel",
-        wraplength=700,
-        justify="left",
-    ).pack(anchor="w", pady=(8, 0))
-
 
     triage_actions = ttk.Frame(findings_tab)
     triage_actions.pack(fill="x", pady=(0, 8))
@@ -392,44 +553,74 @@ def main() -> int:
                 command=lambda name=preset_name: toggle_scanner_preset(name),
             )
 
-        for tab_id in reviewer_panel_tabs.tabs():
-            page = reviewer_panel_tabs.nametowidget(tab_id)
-            reviewer_panel_tabs.forget(tab_id)
-            if page is not reviewer_empty:
-                page.destroy()
+        for child in provider_cards_frame.winfo_children():
+            child.destroy()
         if not provider_rows:
-            reviewer_panel_tabs.add(reviewer_empty, text="Getting started")
+            empty_card = ttk.Frame(provider_cards_frame, style="Card.TFrame", padding=22)
+            empty_card.pack(fill="x", padx=6, pady=6)
+            ttk.Label(empty_card, text="No AI providers yet", style="Card.TLabel", font=("TkDefaultFont", 15, "bold")).pack(anchor="w")
+            ttk.Label(
+                empty_card,
+                text="Add a hosted provider or connect a local Ollama or LM Studio endpoint. You can configure more than one.",
+                style="CardMuted.TLabel",
+                wraplength=700,
+                justify="left",
+            ).pack(anchor="w", pady=(6, 0))
             return
-        for profile in provider_rows:
-            panel = ttk.Frame(reviewer_panel_tabs, padding=18)
-            reviewer_panel_tabs.add(panel, text=profile.name)
+        provider_cards_frame.columnconfigure(0, weight=1)
+        provider_cards_frame.columnconfigure(1, weight=1)
+        for index, profile in enumerate(provider_rows):
+            panel = ttk.Frame(provider_cards_frame, style="Card.TFrame", padding=16)
+            panel.grid(row=index // 2, column=index % 2, sticky="nsew", padx=6, pady=6)
+            tk.Frame(panel, bg=colors["red"], height=2).pack(fill="x", pady=(0, 10))
+            card_header = ttk.Frame(panel, style="Card.TFrame")
+            card_header.pack(fill="x")
+            ttk.Label(card_header, text=profile.name, style="Card.TLabel", font=("TkDefaultFont", 14, "bold")).pack(side="left", anchor="w")
             host = urlparse(profile.base_url).hostname or profile.base_url
             try:
                 is_local = ipaddress.ip_address(host).is_loopback
             except ValueError:
                 is_local = host.casefold() == "localhost"
-            endpoint_type = "Local endpoint" if is_local else "Remote endpoint"
-            key_status = ""
+            key_available = not profile.api_key_env or bool(os.environ.get(profile.api_key_env))
+            status_text = "Enabled" if profile.enabled else "Disabled"
             if profile.api_key_env:
-                key_status = (
-                    f" · {profile.api_key_env} available"
-                    if os.environ.get(profile.api_key_env)
-                    else f" · set {profile.api_key_env} before use"
-                )
-            ttk.Label(panel, text=profile.name, style="PageTitle.TLabel").pack(anchor="w")
+                status_text += " · Key available" if key_available else " · Key required"
+            status_color = colors["green"] if profile.enabled and key_available else colors["amber"]
+            tk.Label(
+                card_header,
+                text=status_text,
+                bg=colors["card"],
+                fg=status_color,
+                font=("TkDefaultFont", 9, "bold"),
+            ).pack(side="right", anchor="e")
+            ttk.Label(panel, text=f"{profile.model}", style="Card.TLabel").pack(anchor="w", pady=(10, 3))
             ttk.Label(
                 panel,
-                text=("Enabled" if profile.enabled else "Disabled") + f" · {endpoint_type}{key_status}",
-                style="Section.TLabel",
-            ).pack(anchor="w", pady=(12, 5))
-            ttk.Label(panel, text=f"Model: {profile.model}", style="Muted.TLabel").pack(anchor="w")
-            ttk.Label(panel, text=f"Endpoint: {profile.base_url}", style="Muted.TLabel").pack(anchor="w", pady=(4, 0))
+                text=f"{'Local' if is_local else 'Remote'} · {profile.base_url}",
+                style="CardMuted.TLabel",
+                wraplength=520,
+                justify="left",
+            ).pack(anchor="w")
+            if profile.api_key_env and not key_available:
+                ttk.Label(panel, text=f"Set {profile.api_key_env} in the app environment to use this provider.", style="CardMuted.TLabel").pack(anchor="w", pady=(6, 0))
+            card_actions = ttk.Frame(panel, style="Card.TFrame")
+            card_actions.pack(fill="x", pady=(14, 0))
             ttk.Button(
-                panel,
-                text="Open chat for selected review",
+                card_actions,
+                text="Open reviewer chat",
                 style="Accent.TButton",
                 command=lambda provider_id=profile.provider_id: open_provider_chat(provider_id),
-            ).pack(anchor="w", pady=(16, 0))
+            ).pack(side="left")
+            ttk.Button(
+                card_actions,
+                text="Configure",
+                command=lambda item=profile: edit_provider(item),
+            ).pack(side="left", padx=(7, 0))
+            ttk.Button(
+                card_actions,
+                text="Remove",
+                command=lambda provider_id=profile.provider_id: remove_provider_profile(provider_id),
+            ).pack(side="right")
 
     def toggle_scanner_preset(preset_name):
         try:
@@ -571,44 +762,95 @@ def main() -> int:
             scanners.remove(item.scanner_id)
             refresh_scanners()
 
-    def add_nvidia_provider():
-        preset = create_provider_preset("nvidia-nim")
-        model = simpledialog.askstring(
-            "NVIDIA NIM",
-            "NVIDIA model ID:",
-            initialvalue=preset.model,
-        )
-        if not model:
-            return
-        try:
-            profile = create_provider_preset("nvidia-nim", model=model)
-            providers.save(profile)
-            refresh_providers()
-            status_var.set("NVIDIA NIM saved · set NVIDIA_API_KEY before review")
-        except (ValueError, TypeError) as exc:
-            messagebox.showerror("NVIDIA NIM", str(exc))
+    def apply_provider_template():
+        kind = provider_kind_var.get()
+        if kind == "NVIDIA NIM":
+            preset = create_provider_preset("nvidia-nim")
+            values = (preset.name, preset.base_url, preset.model, preset.api_key_env or "")
+        elif kind == "Ollama":
+            values = ("Ollama", "http://localhost:11434/v1", "your-installed-model", "")
+        elif kind == "LM Studio":
+            values = ("LM Studio", "http://localhost:1234/v1", "local-model", "")
+        else:
+            values = ("OpenAI-compatible API", "", "", "")
+        provider_name_var.set(values[0])
+        provider_url_var.set(values[1])
+        provider_model_var.set(values[2])
+        provider_key_env_var.set(values[3])
 
-    def add_provider():
-        provider_id = simpledialog.askstring("AI reviewer", "Provider ID (e.g. local-ollama):")
+    provider_kind_combo.bind("<<ComboboxSelected>>", lambda _event: apply_provider_template())
+    apply_provider_template()
+
+    def open_provider_setup(kind):
+        provider_edit_id_var.set("")
+        provider_kind_var.set(kind)
+        apply_provider_template()
+        notebook.select(integrations_tab)
+        integration_tabs.select(reviewer_integrations_tab)
+        if not provider_setup.winfo_manager():
+            provider_setup.pack(fill="x", pady=(0, 12), before=provider_cards_frame)
+        provider_kind_combo.focus_set()
+
+    def edit_provider(profile):
+        provider_edit_id_var.set(profile.provider_id)
+        provider_kind_var.set("OpenAI-compatible API")
+        provider_name_var.set(profile.name)
+        provider_url_var.set(profile.base_url)
+        provider_model_var.set(profile.model)
+        provider_key_env_var.set(profile.api_key_env or "")
+        provider_timeout_var.set(str(profile.timeout_seconds))
+        notebook.select(integrations_tab)
+        integration_tabs.select(reviewer_integrations_tab)
+        if not provider_setup.winfo_manager():
+            provider_setup.pack(fill="x", pady=(0, 12), before=provider_cards_frame)
+        provider_name_entry.focus_set()
+
+    def save_provider_form():
+        name = provider_name_var.get().strip()
+        provider_id = re.sub(r"[^a-z0-9._-]+", "-", name.casefold()).strip("-.")[:64].rstrip("-.")
         if not provider_id:
+            messagebox.showerror("AI reviewer", "Enter a display name to create this provider profile.")
             return
-        name = simpledialog.askstring("AI reviewer", "Display name:")
-        url = simpledialog.askstring("AI reviewer", "OpenAI-compatible base URL:")
-        model = simpledialog.askstring("AI reviewer", "Model name:")
-        if not name or not url or not model:
-            return
-        key_env = simpledialog.askstring("AI reviewer", "API-key environment variable (blank for local models):")
-        timeout = simpledialog.askinteger("AI reviewer", "Timeout in seconds:", initialvalue=60, minvalue=1)
+        key_env = provider_key_env_var.get().strip() or None
         try:
-            profile = ProviderProfile(provider_id, name, url, model, key_env or None, timeout or 60)
+            profile = ProviderProfile(
+                provider_id,
+                name,
+                provider_url_var.get().strip(),
+                provider_model_var.get().strip(),
+                key_env,
+                float(provider_timeout_var.get()),
+            )
+            edit_id = provider_edit_id_var.get().strip() or None
+            existing = providers.get(profile.provider_id)
+            if existing is not None:
+                if not messagebox.askyesno(
+                    "Replace provider settings?",
+                    f"A profile named {profile.name} already exists. Replace its settings?",
+                ):
+                    return
+                providers.remove(profile.provider_id)
             providers.save(profile)
+            if edit_id and edit_id != profile.provider_id:
+                providers.remove(edit_id)
             refresh_providers()
-            status_var.set("AI reviewer saved; key remains in environment")
+            provider_list.selection_clear(0, "end")
+            profile_index = next(index for index, item in enumerate(provider_rows) if item.provider_id == profile.provider_id)
+            provider_list.selection_set(profile_index)
+            provider_setup.pack_forget()
+            provider_edit_id_var.set("")
+            status_var.set(f"{profile.name} provider saved")
         except (ValueError, TypeError) as exc:
             messagebox.showerror("AI reviewer", str(exc))
 
     def remove_provider():
         item = selected_provider()
+        if item is None:
+            return
+        remove_provider_profile(item.provider_id)
+
+    def remove_provider_profile(provider_id):
+        item = providers.get(provider_id)
         if item is None:
             return
         if messagebox.askyesno("Remove AI reviewer", f"Remove {item.name}?"):

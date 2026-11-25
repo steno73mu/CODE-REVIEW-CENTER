@@ -75,7 +75,7 @@ def main() -> int:
                 f"stderr={semgrep_auto.process_result.stderr[:2000]!r}"
             )
 
-        test_access_key = "ghp_0123456789abcdef0123456789abcdef0123"
+        test_access_key = "ghp_" + ("0123456789abcdef" * 2) + "0123"
         (project / "credentials.txt").write_text(
             f"AWS_ACCESS_KEY_ID={test_access_key}\n",
             encoding="utf-8",

@@ -115,7 +115,7 @@ def create_scanner_preset(preset_name: str) -> ScannerProfile:
             scanner_id="osv-scanner-default",
             name="OSV-Scanner",
             parser="sarif",
-            command=("osv-scanner", "scan", "--format", "sarif", "{project_path}"),
+            command=("osv-scanner", "scan", "source", "--format", "sarif", "{project_path}"),
             accepted_exit_codes=(0, 1),
             timeout_seconds=900.0,
         ),
