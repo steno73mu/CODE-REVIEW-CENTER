@@ -74,6 +74,61 @@ class ScannerProfile:
         object.__setattr__(self, "timeout_seconds", float(self.timeout_seconds))
 
 
+def create_scanner_preset(preset_name: str) -> ScannerProfile:
+    """Return a safe built-in scanner profile supported by the shared adapters."""
+    if not isinstance(preset_name, str):
+        raise ValueError("scanner preset name must be text")
+    name = preset_name.strip().casefold()
+    presets = {
+        "semgrep": ScannerProfile(
+            scanner_id="semgrep-default",
+            name="Semgrep",
+            parser="semgrep",
+            command=("semgrep", "scan", "--config", "auto", "--json", "--quiet", "{project_path}"),
+            accepted_exit_codes=(0,),
+            timeout_seconds=300.0,
+        ),
+        "gitleaks": ScannerProfile(
+            scanner_id="gitleaks-default",
+            name="Gitleaks",
+            parser="gitleaks",
+            command=(
+                "gitleaks", "dir", "--report-format", "json", "--report-path", "-",
+                "--redact=100", "--no-banner", "--no-color", "--log-level", "fatal",
+                "{project_path}",
+            ),
+            accepted_exit_codes=(0, 1),
+            timeout_seconds=300.0,
+        ),
+        "trivy": ScannerProfile(
+            scanner_id="trivy-default",
+            name="Trivy",
+            parser="sarif",
+            command=(
+                "trivy", "fs", "--format", "sarif", "--scanners", "vuln,misconfig",
+                "--no-progress", "{project_path}",
+            ),
+            accepted_exit_codes=(0,),
+            timeout_seconds=900.0,
+        ),
+        "osv-scanner": ScannerProfile(
+            scanner_id="osv-scanner-default",
+            name="OSV-Scanner",
+            parser="sarif",
+            command=("osv-scanner", "scan", "--format", "sarif", "{project_path}"),
+            accepted_exit_codes=(0, 1),
+            timeout_seconds=900.0,
+        ),
+    }
+    try:
+        return presets[name]
+    except KeyError as exc:
+        raise ValueError(f"unknown scanner preset: {preset_name}") from exc
+
+
+SCANNER_PRESET_NAMES = ("semgrep", "gitleaks", "trivy", "osv-scanner")
+
+
 class ScannerConfigStore:
     """SQLite-backed, allowlisted scanner profiles; no shell expansion is supported."""
 
