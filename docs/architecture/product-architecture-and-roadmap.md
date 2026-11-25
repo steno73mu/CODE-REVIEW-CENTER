@@ -19,7 +19,7 @@ Initial desktop targets are Pop!_OS/Linux and Windows. Installation must work fo
 
 - Sources include local folders/local Git and remote repositories or change requests.
 - GitHub is first for hosted review. GitLab, Bitbucket, and other/self-hosted Git platforms are intended through separate connectors; support must be implemented and verified rather than implied.
-- The report is always available in the application. A **Publish comments/checks** checkbox controls whether findings are sent to the hosting platform. It is off by default. Read-only access is sufficient when it is off; write access is requested only for publication.
+- The report is always available in the application. On the completed report, an unchecked-by-default **Publish comments/checks** checkbox controls whether the review's eligible findings are sent to the hosting platform. Checking it enables publication; the user must still choose the explicit Publish action. Read-only access is used until publication; write access is requested only then.
 - The initial analysis-toolchain under consideration is Semgrep CE, Gitleaks, Trivy, OSV-Scanner, and Reviewdog. Reviewdog presents/forwards results; it is not a scanner.
 - AI reviewers are a separate, optional category. Their code handling, platform support, cost, and terms differ. No code is sent to an AI service by default.
 - The user wants a dedicated integration and user-facing panel for each enabled tool/service.
@@ -99,7 +99,7 @@ OpenCode is a coding agent/CLI, and LM Studio is a local model server; neither i
 
 Every normalized finding retains the originating tool/agent and rule, severity, message, path/line, source revision, fingerprint where possible, and supporting evidence. Do not collapse different engines into one unexplained result. Begin with exact deduplication; cross-engine correlation remains conservative and auditable.
 
-Show results in the app regardless of publication choice. When **Publish comments/checks** is selected, map findings to the selected provider's supported review/check format and show which items can be published. If unchecked, use read-only host permissions and do not send comments. Never commit, edit source, approve automatically, or merge.
+Show results in the app regardless of publication choice. On the completed report, **Publish comments/checks** is unchecked by default. If the user checks it and chooses Publish, send the eligible findings for that review using the selected provider's supported review/check format. If unchecked, do not send comments and use read-only host permissions. Never commit, edit source, approve automatically, or merge.
 
 ### 5.5 AI and privacy
 
@@ -162,8 +162,8 @@ Package for clean Linux and Windows user accounts. Detect tools and show missing
 
 ### Phase 5 — Comment publication
 - Add read-only source review first.
-- Add the Publish comments/checks checkbox, off by default.
-- Request write permission only when publishing is selected. Map findings to supported host features and prevent duplicates on repeated runs.
+- Add the Publish comments/checks checkbox to the completed report, off by default.
+- Require the user to choose Publish before sending findings. Request write permission only for publication, map findings to supported host features, and prevent duplicates on repeated runs.
 - Never publish an approval, commit, source change, or merge automatically.
 
 **Gate:** tests prove unchecked means no writes and checked publishes only the selected review output to the selected target.
@@ -190,7 +190,7 @@ Package for clean Linux and Windows user accounts. Detect tools and show missing
 3. Which candidate AI reviewers expose an integration that CODE-REVIEW-CENTER can actually operate or consume?
 4. Which desktop UI and installer technologies should be used?
 5. What is the project's license?
-6. Which results can each provider publish, and should the checkbox apply to all findings or only user-selected ones?
+6. Which results can each provider publish, and which individual findings are eligible for comments on each host?
 
 Until these choices and gates are resolved, call the software an early-development MVP, not a public-ready product.
 
