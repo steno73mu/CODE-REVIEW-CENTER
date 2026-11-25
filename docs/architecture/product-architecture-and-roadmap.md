@@ -46,7 +46,7 @@ The development branch currently contains a Python 3.11+ application with:
 - Optional OpenAI-compatible AI review of finding metadata, with remote opt-in; current documentation says source code and code excerpts are not sent.
 - Automated package/CLI CI on Linux and Windows. Synthetic Semgrep and Gitleaks adapter checks are recorded in CI.
 
-The current desktop interface is an MVP, not a release-ready visual design. The codebase does not yet establish GitLab/Bitbucket/self-hosted PR/MR review, host comment publishing, Trivy/OSV-Scanner adapters, Reviewdog integration, or dedicated screens for AI reviewers. The user reports that Semgrep 1.186.0 now works on their Pop!_OS machine after replacing a broken pipx symlink with a wrapper that uses an existing Python 3.14 installation; version/help and a `--config auto` scan were reported successful. This is a machine-specific user-reported verification, separate from CI's Semgrep 1.187.0 fixture test and from a clean install for future users. Real interactive desktop verification on Pop!_OS and Windows, broader correlation fixtures, and the project's license remain open. A Python package is not yet a polished consumer installer.
+The current desktop interface is an MVP, not a release-ready visual design. Built-in Trivy and OSV-Scanner presets now feed their SARIF output through the shared parser, but still need independent supported-platform verification and dedicated status/configuration screens. The codebase does not yet establish GitLab/Bitbucket/self-hosted PR/MR review, host comment publishing, Reviewdog integration, or dedicated screens for AI reviewers. The user reports that Semgrep 1.186.0 now works on their Pop!_OS machine after replacing a broken pipx symlink with a wrapper that uses an existing Python 3.14 installation; version/help and a `--config auto` scan were reported successful. This is a machine-specific user-reported verification, separate from CI's Semgrep 1.187.0 fixture test and from a clean install for future users. Real interactive desktop verification on Pop!_OS and Windows, broader correlation fixtures, and the project's license remain open. A Python package is not yet a polished consumer installer.
 
 Treat these statements as a snapshot; update them when implementation changes.
 
@@ -151,7 +151,7 @@ Package for clean Linux and Windows user accounts. Detect tools and show missing
 **Gate:** clean-install local review works and results can be inspected/exported without any hosted account.
 
 ### Phase 2 — Complete local analysis tools
-- Add and verify Trivy and OSV-Scanner adapters.
+- Verify the new Trivy and OSV-Scanner SARIF presets on supported platforms and implement dedicated status/configuration panels.
 - Decide the exact role for Reviewdog; implement it as reporting/presentation, never as a scanner.
 - Provide individual settings/status panels and per-tool error handling.
 
