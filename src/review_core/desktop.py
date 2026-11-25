@@ -288,13 +288,72 @@ def main() -> int:
     import webbrowser
     import shutil
 
+    def make_scrollable_content(parent):
+        shell = ttk.Frame(parent)
+        shell.pack(fill="both", expand=True)
+        canvas = tk.Canvas(
+            shell,
+            bg=colors["bg"],
+            highlightthickness=0,
+            borderwidth=0,
+            yscrollincrement=28,
+        )
+        scrollbar = ttk.Scrollbar(shell, orient="vertical", command=canvas.yview)
+        canvas.configure(yscrollcommand=scrollbar.set)
+        scrollbar.pack(side="right", fill="y")
+        canvas.pack(side="left", fill="both", expand=True)
+        content = ttk.Frame(canvas)
+        window_id = canvas.create_window((0, 0), window=content, anchor="nw")
+
+        def update_scroll_region(_event=None):
+            canvas.configure(scrollregion=canvas.bbox("all"))
+
+        def resize_content(event):
+            canvas.itemconfigure(window_id, width=event.width)
+            update_scroll_region()
+
+        def pointer_is_over_canvas(event):
+            if not canvas.winfo_ismapped():
+                return False
+            left, top = canvas.winfo_rootx(), canvas.winfo_rooty()
+            return left <= event.x_root < left + canvas.winfo_width() and top <= event.y_root < top + canvas.winfo_height()
+
+        def scroll_mousewheel(event):
+            if not pointer_is_over_canvas(event):
+                return None
+            steps = int(-event.delta / 120)
+            if steps == 0:
+                steps = -1 if event.delta > 0 else 1
+            canvas.yview_scroll(steps, "units")
+            return "break"
+
+        def scroll_linux_up(event):
+            if pointer_is_over_canvas(event):
+                canvas.yview_scroll(-1, "units")
+                return "break"
+            return None
+
+        def scroll_linux_down(event):
+            if pointer_is_over_canvas(event):
+                canvas.yview_scroll(1, "units")
+                return "break"
+            return None
+
+        content.bind("<Configure>", update_scroll_region, add="+")
+        canvas.bind("<Configure>", resize_content, add="+")
+        root.bind_all("<MouseWheel>", scroll_mousewheel, add="+")
+        root.bind_all("<Button-4>", scroll_linux_up, add="+")
+        root.bind_all("<Button-5>", scroll_linux_down, add="+")
+        return content
+
+    review_agents_content = make_scrollable_content(review_agents_tab)
     ttk.Label(
-        review_agents_tab,
+        review_agents_content,
         text="Independent reviewers",
         style="PageTitle.TLabel",
     ).pack(anchor="w")
     ttk.Label(
-        review_agents_tab,
+        review_agents_content,
         text=(
             "OpenCode and Codex can run read-only reviews from this workspace. Starting one asks before code is sent to its configured model; reports stay in this app and are never posted to GitHub."
         ),
@@ -302,7 +361,7 @@ def main() -> int:
         wraplength=1050,
         justify="left",
     ).pack(anchor="w", pady=(4, 10))
-    review_agent_cards = ttk.Frame(review_agents_tab)
+    review_agent_cards = ttk.Frame(review_agents_content)
     review_agent_cards.pack(fill="both", expand=True)
     review_agent_cards.columnconfigure(0, weight=1)
     review_agent_cards.columnconfigure(1, weight=1)
@@ -374,7 +433,8 @@ def main() -> int:
                 command=lambda url=agent.official_url: webbrowser.open(url),
             ).pack(anchor="w", pady=(10, 0))
 
-    provider_toolbar = ttk.Frame(reviewer_integrations_tab)
+    provider_content = make_scrollable_content(reviewer_integrations_tab)
+    provider_toolbar = ttk.Frame(provider_content)
     provider_toolbar.pack(fill="x", pady=(0, 10))
     ttk.Label(provider_toolbar, text="AI providers", style="PageTitle.TLabel").pack(side="left")
     ttk.Button(
@@ -384,7 +444,7 @@ def main() -> int:
         command=lambda: open_provider_setup("OpenAI-compatible API"),
     ).pack(side="right")
 
-    provider_setup = ttk.Frame(reviewer_integrations_tab, style="Card.TFrame", padding=16)
+    provider_setup = ttk.Frame(provider_content, style="Card.TFrame", padding=16)
     provider_setup.pack(fill="x", pady=(0, 12))
     ttk.Label(provider_setup, text="Connect a model provider", style="Card.TLabel", font=("TkDefaultFont", 15, "bold")).pack(anchor="w")
     ttk.Label(
@@ -424,11 +484,12 @@ def main() -> int:
     provider_form_actions.grid(row=3, column=0, columnspan=4, sticky="ew", pady=(10, 0))
     ttk.Button(provider_form_actions, text="Save provider", style="Accent.TButton", command=lambda: save_provider_form()).pack(side="left")
     provider_setup.pack_forget()
-    provider_cards_frame = ttk.Frame(reviewer_integrations_tab)
+    provider_cards_frame = ttk.Frame(provider_content)
     provider_cards_frame.pack(fill="both", expand=True)
 
-    ttk.Label(scanner_integrations_tab, text="Scanner integrations", style="PageTitle.TLabel").pack(anchor="w", pady=(0, 10))
-    scanner_cards_frame = ttk.Frame(scanner_integrations_tab)
+    scanner_content = make_scrollable_content(scanner_integrations_tab)
+    ttk.Label(scanner_content, text="Scanner integrations", style="PageTitle.TLabel").pack(anchor="w", pady=(0, 10))
+    scanner_cards_frame = ttk.Frame(scanner_content)
     scanner_cards_frame.pack(fill="both", expand=True)
     scanner_cards_frame.columnconfigure(0, weight=1)
     scanner_cards_frame.columnconfigure(1, weight=1)
