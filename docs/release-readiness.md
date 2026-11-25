@@ -28,7 +28,7 @@ The current branch is a functional MVP, not a production release. Complete this 
 - Scanner processes are not sandboxed. Only trusted installed executables may be configured; executable lookup excludes relative PATH entries and rejects executables inside the scanned project.
 - Timeout and cancellation terminate the scanner process tree (POSIX process groups; Windows `taskkill /T`). The launcher remains a process-lifecycle control, not an OS sandbox.
 - Cross-engine correlation is conservative and needs a larger labeled fixture corpus before being used as a definitive duplicate classifier.
-- Reviewer chat transmits finding metadata and user-entered chat messages to the selected provider after explicit opt-in. Conversations are stored locally per scan/provider. Literal and DNS-resolved non-public addresses are rejected, but DNS rebinding is not fully prevented; network egress controls remain the stronger boundary. Source files and code excerpts are not uploaded by the current implementation.
+- Reviewer chat transmits finding metadata and user-entered chat messages to the selected provider after explicit opt-in. The app does not attach source files, but code or sensitive text pasted into chat is transmitted. Conversations are stored locally per scan/provider. Literal and DNS-resolved non-public addresses are rejected, but DNS rebinding is not fully prevented; network egress controls remain the stronger boundary.
 - The desktop UI is an initial operational workspace and has not yet undergone manual cross-platform usability testing.
 
 Do not remove these limitations from the documentation until the corresponding evidence exists.
