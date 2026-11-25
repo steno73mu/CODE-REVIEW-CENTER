@@ -215,6 +215,26 @@ class ScannerConfigStore:
         return cursor.rowcount > 0
 
 
+NVIDIA_NIM_BASE_URL = "https://integrate.api.nvidia.com/v1"
+NVIDIA_NIM_DEFAULT_MODEL = "meta/llama-3.1-8b-instruct"
+
+
+def create_provider_preset(preset_name: str, *, model: str | None = None) -> ProviderProfile:
+    """Return a provider profile with official endpoint defaults and no stored secret."""
+    if not isinstance(preset_name, str) or preset_name.strip().casefold() != "nvidia-nim":
+        raise ValueError(f"unknown provider preset: {preset_name}")
+    return ProviderProfile(
+        provider_id="nvidia-nim",
+        name="NVIDIA NIM",
+        base_url=NVIDIA_NIM_BASE_URL,
+        model=model or NVIDIA_NIM_DEFAULT_MODEL,
+        api_key_env="NVIDIA_API_KEY",
+    )
+
+
+PROVIDER_PRESET_NAMES = ("nvidia-nim",)
+
+
 _API_KEY_ENV = re.compile(r"[A-Z][A-Z0-9_]{0,127}")
 
 
