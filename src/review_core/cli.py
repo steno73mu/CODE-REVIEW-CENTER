@@ -9,7 +9,10 @@ from pathlib import Path
 import sys
 import uuid
 
-from .configuration import ProviderConfigStore, ProviderProfile, ScannerConfigStore, ScannerProfile
+from .configuration import (
+    ProviderConfigStore, ProviderProfile, ScannerConfigStore, ScannerProfile,
+    SCANNER_PRESET_NAMES, create_scanner_preset,
+)
 from .providers import AIReviewClient, AIReviewError
 from .application import scan_project
 from .projects import ProjectRegistry
@@ -77,7 +80,7 @@ def _parser() -> argparse.ArgumentParser:
     preset_sub = preset.add_subparsers(dest="preset_action", required=True)
     preset_sub.add_parser("list")
     preset_add = preset_sub.add_parser("add")
-    preset_add.add_argument("preset_name", choices=("semgrep", "gitleaks"))
+    preset_add.add_argument("preset_name", choices=SCANNER_PRESET_NAMES)
 
     remove_scanner = scanner_sub.add_parser("remove")
     remove_scanner.add_argument("scanner_id")
@@ -229,22 +232,15 @@ def main(argv: list[str] | None = None) -> int:
             elif args.action == "preset":
                 if args.preset_action == "list":
                     _json([
-                        {"name": "semgrep", "parser": "semgrep", "executable": "semgrep"},
-                        {"name": "gitleaks", "parser": "gitleaks", "executable": "gitleaks"},
+                        {
+                            "name": name,
+                            "parser": create_scanner_preset(name).parser,
+                            "executable": create_scanner_preset(name).command[0],
+                        }
+                        for name in SCANNER_PRESET_NAMES
                     ])
                 else:
-                    if args.preset_name == "semgrep":
-                        profile = ScannerProfile(
-                            scanner_id="semgrep-default", name="Semgrep", parser="semgrep",
-                            command=("semgrep", "scan", "--config", "auto", "--json", "--quiet", "{project_path}"),
-                            accepted_exit_codes=(0,), timeout_seconds=300.0,
-                        )
-                    else:
-                        profile = ScannerProfile(
-                            scanner_id="gitleaks-default", name="Gitleaks", parser="gitleaks",
-                            command=("gitleaks", "dir", "--report-format", "json", "--report-path", "-", "--redact=100", "--no-banner", "--no-color", "--log-level", "fatal", "{project_path}"),
-                            accepted_exit_codes=(0, 1), timeout_seconds=300.0,
-                        )
+                    profile = create_scanner_preset(args.preset_name)
                     scanners.save(profile)
                     _json(asdict(profile))
             else:
