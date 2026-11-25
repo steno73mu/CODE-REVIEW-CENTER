@@ -119,9 +119,9 @@ Store local history and settings in per-user application data. Do not record API
 
 ### 5.6 User interface and distribution
 
-Replace the Tkinter prototype with a polished desktop interface after selecting a framework. The visual direction is **dark by default**, guided by the user's supplied Dribbble image reference: `https://cdn.dribbble.com/userupload/49681546/file/da7960b2396d84c12c67894e63096498.png?resize=752x&vertical=center`. Treat it as visual inspiration, not a screen to copy. Choose exact colors, typography, spacing, and component details during interface design.
+Replace the Tkinter prototype with a polished desktop interface after selecting a framework. The visual direction is **dark by default**, guided by the user's [Dribbble reference: AI Agent Dashboard — Driftwork](https://dribbble.com/shots/27905826-AI-Agent-Dashboard-Driftwork). Adapt its dark agent-dashboard feel to code review; do not copy the original screen. The intended structure is a persistent left navigation, a compact top area for selected repository/revision and scan state, at-a-glance tool status, and a central review workspace for findings and recent activity. Use clear data hierarchy, readable contrast, restrained accent colors, and distinct severity/status cues. Choose exact colors, typography, spacing, and components during interface design.
 
-The experience should feel like a current developer review workspace, not a legacy utility window. Use readable contrast, restrained accent colors, clear status and severity cues, and consistent spacing. Give each integrated scanner and review agent a dedicated panel with its own settings and status, while keeping navigation and results consistent. Keep the interaction consistent across Linux and Windows:
+The experience should feel like a current developer review workspace, not a legacy utility window. Give each integrated scanner and review agent a dedicated panel with its own settings and status, while keeping navigation and results consistent. Keep the interaction consistent across Linux and Windows:
 
 1. Choose a local folder, repository URL, or hosted PR/MR.
 2. Choose tools and their profiles using dedicated panels.
