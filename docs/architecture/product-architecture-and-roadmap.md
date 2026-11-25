@@ -1,168 +1,207 @@
-# Product Architecture and Roadmap
+# CODE-REVIEW-CENTER — Product Architecture and Delivery Path
 
-**Status:** Working proposal  
-**Audience:** Project contributors and future users  
-**Last updated:** 2026-11-25
+**Document type:** Product design and roadmap  
+**Status:** Proposed hybrid architecture; awaiting owner approval  
+**Audience:** Contributors and future users  
+**Updated:** 2026-11-25
 
-## 1. Product direction
+## 1. Product intent
 
-CODE-REVIEW-CENTER is a downloadable code review application for individual developers and teams. It should help users review code from a local folder or from repositories hosted on services they choose. It must not depend on the original project owner's machine, account, installed paths, or preferred provider.
+CODE-REVIEW-CENTER is a downloadable application for individual developers and teams. A user can review a folder or Git repository on their computer, or a change hosted on GitHub and other Git platforms. The application gathers independent analysis results in one workspace, explains where each result came from, and lets the user decide whether to publish comments back to the hosting platform.
 
-The application owns the review workflow and a common findings model. Source hosts, scanners, AI providers, and report destinations connect through replaceable adapters.
+It is a review workspace, not a single AI model and not a repackaging of third-party scanners. Its core should work without a hosted AI subscription. Users choose which local tools, AI reviewers, and source connections to enable.
 
-The first supported desktop targets are Pop!_OS/Linux and Windows. The application should remain useful without an AI service or a hosted account: users can select a local checkout and run available analysis tools locally.
+**Primary user outcome:** choose source → choose review tools → run review → inspect a clear report in the app → optionally publish selected results online.
 
-## 2. Sources and review modes
+Initial desktop targets are Pop!_OS/Linux and Windows. Installation must work for users other than the original developer and must not depend on personal paths, accounts, or machine configuration.
 
-A source connector turns a selected project or change request into a consistent `RepositorySnapshot`:
+## 2. Requirements established so far
 
-- **Local folder:** scan a chosen directory, or review a selected local Git branch/commit and its diff.
-- **GitHub:** clone or fetch a repository and review a branch, commit, or pull request.
-- **GitLab:** review a project, branch, commit, or merge request.
-- **Bitbucket:** review a repository, branch, commit, or pull request.
-- **Other Git hosts:** support generic HTTPS/SSH Git remotes, including self-hosted Git services. Host-specific review-request features require a provider adapter.
+- Sources include local folders/local Git and remote repositories or change requests.
+- GitHub is first for hosted review. GitLab, Bitbucket, and other/self-hosted Git platforms are intended through separate connectors; support must be implemented and verified rather than implied.
+- The report is always available in the application. A **Publish comments/checks** checkbox controls whether findings are sent to the hosting platform. It is off by default. Read-only access is sufficient when it is off; write access is requested only for publication.
+- The initial analysis-toolchain under consideration is Semgrep CE, Gitleaks, Trivy, OSV-Scanner, and Reviewdog. Reviewdog presents/forwards results; it is not a scanner.
+- AI reviewers are a separate, optional category. Their code handling, platform support, cost, and terms differ. No code is sent to an AI service by default.
+- The user wants a dedicated integration and user-facing panel for each enabled tool/service.
+- The product is intended for external download and use. Public release requires a project-license decision and a full redistribution/dependency audit.
+- Do not let any reviewer edit the repository, commit, or merge changes. Code review and comment publication are distinct from code modification.
 
-A snapshot records the provider, repository identity, selected revision, optional base revision and change-request identity, local checkout location, and changed-file list. The scanner adapters receive a local read-only checkout path and optional diff context; they do not need to know which host supplied it.
+## 3. Approaches considered
 
-Fetching remote code is an explicit user action. Credentials are kept in the operating system credential store where available, with least-privilege scopes. A remote repository is cloned into an application-managed temporary workspace and can be deleted after the scan. Source connectors must not run repository hooks, scripts, builds, or other project commands.
+| Approach | Strengths | Trade-offs |
+|---|---|---|
+| Local-only engine | Strong privacy and predictable operation; useful for folders and offline work. | Cannot offer native hosted PR/MR workflows or publish comments without additional connectors. |
+| External-agent dashboard | Fast access to hosted reviewer services and their platform comments. | Depends on account plans, network, external code handling, and provider APIs; poor baseline for a downloadable product that should also work locally. |
+| **Hybrid (selected)** | Local scanners and local reviews form the baseline; platform connectors and hosted AI reviewers are optional. One results view supports local reports and opt-in publication. | More adapter work; each provider's real capabilities must be discovered and shown instead of pretending every integration is equivalent. |
 
-## 3. Application architecture
+The selected direction is the hybrid. It keeps the core usable without an external AI service while supporting remote repositories and optional provider integrations.
 
-| Component | Responsibility |
-|---|---|
-| User interface | Select a local or hosted source, choose a review mode, configure each tool, inspect findings and scan history, and export or publish results. |
-| Source connectors | Fetch or describe local and hosted repositories and create a common repository snapshot. |
-| Review orchestrator | Coordinate a scan, enforce timeouts and cancellation, isolate per-tool failures, and report progress. |
-| Engine adapters | Detect tool availability, validate configuration, invoke a tool without a shell, capture bounded output, and parse its results. |
-| Finding domain model | Store normalized findings while retaining the original engine, rule, evidence, and source location. |
-| Correlation | Deduplicate exact matches first; add explainable cross-engine correlation only after its quality is measured. |
-| Storage | Keep user settings, scan history, and findings locally. Use separate locations for configuration, cache, and temporary checkouts. |
-| Report adapters | Export results and, when explicitly requested, publish review annotations or check summaries to a host. |
-| Optional AI adapters | Offer local or remote AI review as a separate, opt-in capability. |
+## 4. Current repository baseline
 
-Keep these boundaries stable so a provider or scanner can be added without rewriting the whole application. Version public adapter contracts before third parties are encouraged to build plugins.
+The development branch currently contains a Python 3.11+ application with:
 
-## 4. Analysis tools and result presentation
+- A shared core, CLI, and an initial Tkinter desktop interface.
+- Local project registration and GitHub clone/update.
+- Semgrep and Gitleaks adapters, SARIF parsing, normalized findings, exact deduplication, conservative correlation, SQLite history, triage, and JSON/SARIF/Markdown reports.
+- Optional OpenAI-compatible AI review of finding metadata, with remote opt-in; current documentation says source code and code excerpts are not sent.
+- Automated package/CLI CI on Linux and Windows. Synthetic Semgrep and Gitleaks adapter checks are recorded in CI.
 
-The initial agreed toolchain contains five tools, with distinct responsibilities:
+The current desktop interface is an MVP, not a release-ready visual design. The codebase does not yet establish GitLab/Bitbucket/self-hosted PR/MR review, host comment publishing, Trivy/OSV-Scanner adapters, Reviewdog integration, or dedicated screens for AI reviewers. Real interactive desktop verification on Pop!_OS and Windows, broader correlation fixtures, and the project's license remain open. A Python package is not yet a polished consumer installer.
 
-| Tool | Role in the product |
-|---|---|
-| Semgrep CE | Static analysis and rule-based code findings |
-| Gitleaks | Secret detection |
-| Trivy | Vulnerability and misconfiguration analysis |
-| OSV-Scanner | Dependency vulnerability analysis |
-| Reviewdog | Review-result presentation and integration with supported reporting formats; it is not a scanner |
+Treat these statements as a snapshot; update them when implementation changes.
 
-Each tool has its own adapter and user-facing settings panel: availability/version, supported scan modes, profile or ruleset, exclusions, limits, status, and links to the tool's own documentation. The interface should show what each tool did and why it could not run. A tool being installed on one developer's computer does not mean it is bundled with, or available in, the downloadable product.
+## 5. Architecture
 
-The shared findings view groups results without hiding their origin. Each finding should retain at least its engine and rule ID, severity, message, file and location, stable fingerprint where possible, confidence/evidence, and relevant source revision. The user can filter by tool, severity, file, and status, then open the source context. Preserve raw tool output only when needed for troubleshooting, bound its size, and redact secrets before display or storage.
+### 5.1 Source connectors
 
-## 5. Optional AI review
+Each connector resolves user intent into a common `ReviewTarget`:
 
-AI review is separate from deterministic scanners and is never required to use the application. Local providers, such as an OpenAI-compatible local endpoint, and remote providers can be added through separate adapters.
+- source provider and repository identity;
+- local folder or managed checkout location;
+- selected branch, commit, or PR/MR;
+- base/head revisions and changed-file diff, when available;
+- authentication capability and whether the connection is read-only or can publish comments.
 
-Before any code or diff is sent to a remote provider, the application must identify the destination and ask the user to opt in for that provider and review. The default is no code upload. Show what will be sent, support excluding files, and provide clear provider status and data-handling information. Do not require users to install a model.
+Initial connectors: local folder/local Git, then GitHub. Later connectors: GitLab, Bitbucket, and generic/self-hosted Git. A generic Git URL supports fetching code, but platform-specific PR/MR metadata and comments require a matching host adapter.
 
-AI suggestions remain labeled as AI-generated evidence and must not silently become confirmed scanner findings or be published as review comments.
+Remote repositories are fetched into an application-managed workspace. Do not run repository scripts, hooks, builds, or setup commands during fetch or review. Leave a user's local checkout unchanged.
 
-## 6. User experience and distribution
+### 5.2 Review orchestrator and tool adapters
 
-The current desktop interface is a prototype, not the final design. The product should offer one coherent application with:
+A central orchestrator runs only the tools selected for a review, reports progress, handles cancellation and timeouts, and records each tool's independent outcome. Invoke local binaries through argument arrays, validate bounded output, and preserve tool version and exit status.
 
-1. a clear start screen for local folders and hosted repositories;
-2. a review setup screen with source, revision, tools, and profile;
-3. separate, understandable settings for each integrated tool;
-4. scan progress and per-tool status;
-5. a unified findings view with tool provenance and source context;
-6. local history, export, and explicit host publishing controls.
+Use separate adapters and capability profiles for:
+- **Static/security/dependency analysis:** Semgrep CE, Gitleaks, Trivy, OSV-Scanner.
+- **Result presentation:** Reviewdog or a compatible reporting adapter.
+- **AI review agents:** local/self-hosted or hosted, each optional and isolated from the deterministic scanner contract.
 
-The interface should be usable by people who have not read the source code, support keyboard navigation and accessible contrast, and explain missing tools in plain language. Keep product screens independent of any specific developer's paths or shell configuration.
+Each tool gets a dedicated panel in the UI showing availability, connection/configuration, supported review modes, version or service status, cost/network implications where relevant, and findings/results. A capability matrix must distinguish `local review`, `remote PR/MR review`, `read repository`, `publish comments/checks`, and `requires external model/service`.
 
-Distribution must be planned for fresh user accounts on Linux and Windows. An installer or documented setup flow should detect prerequisites, explain optional tool installation, avoid replacing existing binaries, and verify downloads before installation. Decide separately which tools can be bundled after the license and redistribution audit. Provide upgrade and uninstall guidance, release checksums, and a software bill of materials (SBOM). The project's own license is still undecided and must be selected before public distribution.
+Do not assume every named service exposes a public API, CLI, or redistribution right. Add an adapter only through a documented and supportable interface. Where a vendor service can only run in its own web interface, present it as an external hand-off rather than falsely claiming native execution.
 
-## 7. Security and privacy defaults
+### 5.3 AI reviewer shortlist — candidates, not a final roster
 
-- Treat repository contents, filenames, diffs, tool output, and AI output as untrusted input.
-- Never execute code from the reviewed repository as part of fetching or scanning.
-- Invoke tools with argument arrays, not shell-composed commands; constrain paths, output size, run time, and concurrency.
-- Keep tokens in the system credential store when available; request only the permissions needed for the chosen operation.
-- Scan locally by default. Do not upload source code to an AI provider or publish findings to a hosting service without a clear user action.
-- Make remote comments/checks an explicit later action, scoped to the selected review. Never commit changes or merge a pull request.
-- Keep temporary checkouts separate from the user's working tree and make cleanup behavior visible.
-- Document telemetry, retention, and network activity; ship with telemetry off unless a future, explicit product decision says otherwise.
+Prior discussions identified PR-Agent for a GitHub workflow using an NVIDIA API, and the user asked for six or seven separate integrations. The following are current candidates to evaluate; this is not a decision to bundle, endorse, or implement all of them:
 
-## 8. Delivery roadmap
+| Candidate | Potential fit | Constraint to verify |
+|---|---|---|
+| PR-Agent | Open-source/self-hostable first candidate; adaptable to several Git providers and model endpoints. | Pin a supported version, verify current community maintenance, local diff support, exact permissions, and model/data flow. |
+| CodeRabbit | Hosted reviewer with multiple Git-platform integrations. | External code processing, plan limits, provider APIs, and whether the product can consume results outside the vendor UI. |
+| Greptile | Hosted reviewer emphasizing repository context; candidate for GitHub/GitLab workflows. | Hosted data handling and supported integration/API surface. |
+| Qodo Code Review | Hosted multi-platform review product, distinct from community PR-Agent. | Product plan, current platform support, and supported API contract. |
+| GitHub Copilot Code Review | Native option for GitHub PRs. | Platform/plan dependence; not a cross-host local engine. |
+| Codex Code Review | Candidate for local review and GitHub workflows; GitLab availability must be treated according to its current status. | Product availability and whether a third-party app integration is supported. |
+| Seventh reviewer | Not identified yet. | Do not guess its name; confirm from project history or a deliberate evaluation. |
 
-### Stage 0 — Product contract
+OpenCode is a coding agent/CLI, and LM Studio is a local model server; neither is automatically a separate review engine. “OpenReview” has not been confirmed as the name of the intended code-review tool. PR-Agent is the concrete reviewer recovered from the earlier GitHub-review discussion.
 
-- Confirm the first-release source providers and review modes.
-- Keep the five-tool roster above and classify scanners, result presentation, and optional AI correctly.
-- Choose the UI technology, configuration format, credential-store approach, and install/update strategy.
-- Decide the project's license and audit the licenses of dependencies and any bundled tools.
+### 5.4 Findings, correlation, and report
 
-**Exit condition:** written decisions, supported-platform matrix, and release boundaries agreed.
+Every normalized finding retains the originating tool/agent and rule, severity, message, path/line, source revision, fingerprint where possible, and supporting evidence. Do not collapse different engines into one unexplained result. Begin with exact deduplication; cross-engine correlation remains conservative and auditable.
 
-### Stage 1 — Stable local workflow
+Show results in the app regardless of publication choice. When **Publish comments/checks** is selected, map findings to the selected provider's supported review/check format and show which items can be published. If unchecked, use read-only host permissions and do not send comments. Never commit, edit source, approve automatically, or merge.
 
-- Define the source snapshot and adapter contracts.
-- Make local-folder and local-Git reviews predictable and isolated.
-- Make each scanner's detection, configuration, failure, timeout, and result status visible.
-- Complete finding normalization and establish a representative correlation corpus.
+### 5.5 AI and privacy
 
-**Exit condition:** local review works on a clean supported Linux installation without relying on the original developer's machine.
+Local scanners and local reviewers run on the user's computer where supported. For hosted AI, state what will leave the computer, which provider receives it, and any required account or cost. The default is no code upload. Require explicit opt-in per provider/review before sending source or diffs. Keep AI output visibly labeled as model-generated and separate from verified scanner results.
 
-### Stage 2 — Hosted-source adapters
+Store local history and settings in per-user application data. Use the operating system credential store where available. Never place API keys in review history or project files.
 
-- Add GitHub repository and pull-request workflows.
-- Add GitLab and Bitbucket adapters, followed by generic and self-hosted Git support.
-- Add provider capability reporting so users can distinguish fetch/review support from comment/check publishing.
-- Test authentication, pagination, diffs, deleted/renamed files, and inaccessible repositories.
+### 5.6 User interface and distribution
 
-**Exit condition:** the same review pipeline works across local and hosted snapshots, with provider-specific behavior isolated in adapters.
+Replace the Tkinter prototype with a production-quality interface after selecting a framework. Keep the interaction consistent across Linux and Windows:
 
-### Stage 3 — Toolchain and result quality
+1. Choose a local folder, repository URL, or hosted PR/MR.
+2. Choose tools and their profiles using dedicated panels.
+3. Inspect progress and per-tool status.
+4. Review one unified, filterable findings report with provenance and source context.
+5. Decide whether to publish comments/checks using the explicit checkbox.
+6. View local scan history and export supported report formats.
 
-- Finish and verify adapters for Semgrep CE, Gitleaks, Trivy, and OSV-Scanner.
-- Implement Reviewdog only for supported reporting/presentation paths.
-- Expand fixtures and tests for parsing, stable fingerprints, deduplication, path mapping, and failure isolation.
-- Preserve each engine's identity and version in every result.
+Package for clean Linux and Windows user accounts. Detect tools and show missing prerequisites without silently replacing binaries. Decide which components are bundled only after license/notice review. Provide verified downloads, upgrade/uninstall guidance, checksums, SBOM, and release signing. Do not publish a public release until the project license and release gates are complete.
 
-**Exit condition:** repeatable reports with transparent per-tool status and measured correlation behavior.
+## 6. Delivery path and completion gates
 
-### Stage 4 — Product interface
+### Phase 0 — Freeze the product contract
+- Confirm the seven-tool/reviewer roster from project history; mark each as scanner, reporter, local reviewer, or hosted service.
+- Define first-release platforms, source modes, comment behavior, and AI data consent.
+- Choose the UI framework, installer approach, credential storage, and project license.
+- Produce a provider/tool capability and permission matrix.
 
-- Replace the prototype presentation with the agreed user-facing experience.
-- Add dedicated per-tool configuration and diagnostic views.
-- Add local history, export, accessible navigation, and clear privacy controls.
-- Verify the app in real Pop!_OS and Windows desktop sessions.
+**Gate:** the intended integrations and user-visible behaviors are named and classified; unknown items stay visibly unresolved.
 
-**Exit condition:** a new user can configure and complete a review without using the command line for routine work.
+### Phase 1 — Stabilize the existing local MVP
+- Audit current CLI, UI, storage, scanner and AI behavior against the README.
+- Finish normalization and increase labeled test fixtures for duplicates/correlation.
+- Verify Semgrep and Gitleaks on supported Linux/Windows versions; define how missing or broken executables are diagnosed.
+- Redesign only after a UI framework is chosen; preserve working core behavior.
 
-### Stage 5 — Optional publishing and AI
+**Gate:** clean-install local review works and results can be inspected/exported without any hosted account.
 
-- Add opt-in review comments/checks for providers where scopes and APIs are verified.
-- Add optional local and remote AI adapters with the upload consent flow.
-- Ensure publishing and AI failures do not corrupt local findings or the source repository.
+### Phase 2 — Complete local analysis tools
+- Add and verify Trivy and OSV-Scanner adapters.
+- Decide the exact role for Reviewdog; implement it as reporting/presentation, never as a scanner.
+- Provide individual settings/status panels and per-tool error handling.
 
-**Exit condition:** users can clearly review every outbound action before it happens.
+**Gate:** each selected tool has a verified input, output, version, failure state, and documented user setup.
 
-### Stage 6 — Downloadable release readiness
+### Phase 3 — Remote source review
+- Add GitHub PR/commit source review through the shared ReviewTarget.
+- Add GitLab and Bitbucket, then generic/self-hosted host support based on user priority.
+- Handle private repositories, diffs, renames/deletions, pagination, revisions, and read-only permissions.
 
-- Complete Linux and Windows packaging, install/upgrade/uninstall checks, and clean-machine verification.
-- Complete the project and dependency license audit, notices, SBOM, checksums, and release signing.
-- Document supported platforms, required versus optional tools, network behavior, data storage, and limitations.
-- Run CI for supported platforms and keep the release separate from the development branch until all gates pass.
+**Gate:** local and remote snapshots produce the same finding contract, while host-specific details remain in connectors.
 
-**Exit condition:** a user outside the development team can download, verify, install, and use the product with no undocumented machine-specific setup.
+### Phase 4 — Optional review agents
+- Implement the plugin/capability contract and evaluate PR-Agent first as a self-hosted candidate.
+- Evaluate the remaining requested candidates for supported APIs/CLIs and lawful integration.
+- Add one dedicated configuration/result panel per integration actually supported.
+- Add local Ollama/LM Studio and remote provider tests only where the selected review agent uses them; do not require a model.
 
-## 9. Decisions still open
+**Gate:** every enabled reviewer has verified data flow, permissions, cost/status disclosure, and a useful error path.
 
-1. Which hosted providers ship first after GitHub: GitLab, Bitbucket, or both?
-2. Which UI framework best supports a polished Linux and Windows desktop application?
-3. Is Reviewdog retained as a runtime dependency, or should its supported output formats be implemented by native report adapters?
-4. Which tools are bundled, installed by the user, or detected as existing system tools?
-5. What project license and contribution policy will apply?
-6. Which local and remote AI providers, if any, are supported in the first release?
+### Phase 5 — Comment publication
+- Add read-only source review first.
+- Add the Publish comments/checks checkbox, off by default.
+- Request write permission only when publishing is selected. Map findings to supported host features and prevent duplicates on repeated runs.
+- Never publish an approval, commit, source change, or merge automatically.
 
-Until these decisions and the roadmap gates are complete, the product should be described as under development, not ready for public distribution.
+**Gate:** tests prove unchecked means no writes and checked publishes only the selected review output to the selected target.
+
+### Phase 6 — Product UI and user testing
+- Implement the chosen polished desktop UX with dedicated panels for each integrated tool.
+- Test keyboard/accessibility, cancellation, large results, missing dependencies, privacy explanations, and history.
+- Perform interactive testing on real Pop!_OS and Windows systems.
+
+**Gate:** an external user can add a local project or hosted source and complete a review without undocumented terminal setup.
+
+### Phase 7 — Downloadable public release
+- Complete license and third-party notice audits, decide bundling, and generate SBOM/checksums/signatures.
+- Build and verify Linux/Windows installers on clean environments.
+- Complete security/privacy review, release documentation, CI gates, upgrade/uninstall validation, and final changelog.
+- Keep release separate from the development branch until every release gate passes.
+
+**Gate:** a user outside the development team can verify, install, and use the product with no machine-specific setup or hidden network behavior.
+
+## 7. Decisions still open
+
+1. What was the seventh tool/reviewer discussed earlier? Confirm the exact six/seven before implementation.
+2. Which hosted providers are first after GitHub: GitLab, Bitbucket, both, or another host?
+3. Which candidate AI reviewers expose an integration that CODE-REVIEW-CENTER can actually operate or consume?
+4. Which desktop UI and installer technologies should be used?
+5. What is the project's license?
+6. Which results can each provider publish, and should the checkbox apply to all findings or only user-selected ones?
+
+Until these choices and gates are resolved, call the software an early-development MVP, not a public-ready product.
+
+## 8. Reference material
+
+- [Current architecture overview](overview.md)
+- [Third-party integration and license notes](../third-party-integrations.md)
+- [Release readiness checklist](../release-readiness.md)
+- [PR-Agent local setup](https://github.com/The-PR-Agent/pr-agent/blob/main/docs/docs/installation/locally.md)
+- [CodeRabbit platform and FAQ](https://www.coderabbit.ai/faq)
+- [Greptile documentation](https://www.greptile.com/docs/introduction)
+- [GitHub Copilot Code Review](https://docs.github.com/en/copilot/concepts/agents/code-review)
+- [Codex pull-request review guidance](https://help.openai.com/en/articles/20001552-review-pull-requests-with-codex)
+- [Qodo Code Review configuration](https://docs.qodo.ai/qodo-documentation/code-review/get-started/configuration-overview/configuration-file)
