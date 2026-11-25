@@ -27,11 +27,11 @@ This is an original product, not a repackaged scanner or a fork of another revie
 - **Finding model:** validation, provenance, source coordinates, stable SHA-256 fingerprints.
 - **Deduplication and correlation:** deterministic exact deduplication plus conservative cross-engine matching with explicit pairwise evidence.
 - **Safe process contract:** argument arrays only (no shell), per-engine timeouts, process-tree termination on cancellation/timeout, bounded output capture, and a maximum of 32 concurrent jobs.
-- **Local persistence:** SQLite scan history, projects, scanner profiles, correlation evidence, AI reviews, and triage state.
+- **Local persistence:** SQLite scan history, projects, scanner profiles, correlation evidence, reviewer chats per scan/provider, and triage state.
 - **Finding triage:** open, accepted, false positive, fixed, or won't-fix, with reviewer notes.
 - **AI review:** OpenAI-compatible Chat Completions providers, local endpoints, environment-variable API key references, explicit remote-provider opt-in.
 - **Reports:** JSON, SARIF 2.1.0, and Markdown exports.
-- **Interfaces:** `crc` CLI and `crc-desktop` Tkinter desktop workspace.
+- **Interfaces:** `crc` CLI and `crc-desktop` Tkinter desktop workspace with separate scanner/provider panels.
 - **GitHub repositories:** clone and update HTTPS GitHub repositories locally, then analyze them with the same scanner workflow.
 - **Built-in presets:** Semgrep and Gitleaks.
 - **Diagnostics:** `crc doctor` checks the local runtime and configured scanner executables without network access.
@@ -115,7 +115,7 @@ Copy the `project_id` from `crc project list` and replace `PROJECT_ID` above. Se
 crc-desktop
 ```
 
-The desktop workspace supports project and scanner/provider profiles, background scans, cancellation, finding triage, AI review, history, and report export. On Windows, `crc-desktop` is installed as a GUI script and does not open an extra console window. On Linux, install the matching `python3-tk` package if Tkinter is not included with your Python interpreter.
+The desktop workspace includes individual status/setup panels for Semgrep, Gitleaks, Trivy, OSV-Scanner, and configured AI reviewers. It supports background scans, cancellation, finding triage, a saved chat per reviewer and scan, history, and report export. On Windows, `crc-desktop` is installed as a GUI script and does not open an extra console window. On Linux, install the matching `python3-tk` package if Tkinter is not included with your Python interpreter.
 
 ### Configure a custom scanner
 
@@ -157,7 +157,7 @@ crc provider add --id remote --name "Remote reviewer" \
 crc review --session SESSION_ID --provider remote --allow-external
 ```
 
-AI review sends finding metadata, including scanner messages, but does not upload source files or code excerpts. Review responses are stored in local scan history. Assess the sensitivity of finding messages before using a remote provider.
+Reviewer chats receive finding metadata and the messages you type, but do not upload source files or code excerpts. Conversations are saved locally in SQLite separately for each reviewer and scan. Remote chat requires explicit opt-in when the chat opens. Assess the sensitivity of finding messages and chat text before using a remote provider.
 
 ## Triage and reports
 
